@@ -1,0 +1,27 @@
+.downloadButton {
+  height: 44px;
+  border-radius: 6px;
+
+  color: white;
+
+  padding: 0 20px;
+
+  border: none;
+  background-color: #0969da;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: 85ms opacity;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: solid 2px #0969da80;
+    outline-offset: 2px;
+  }
+}

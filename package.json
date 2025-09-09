@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "name": "citizenband",
+  "packageManager": "yarn@4.9.4",
+  "scripts": {
+    "common": "yarn workspace common",
+    "desktop": "yarn workspace desktop",
+    "web": "yarn workspace web",
+    "start": "conc 'yarn web dev' 'yarn desktop start'",
+    "package": "yarn desktop package",
+    "release": "yarn desktop release"
+  },
+  "workspaces": [
+    "./common",
+    "./desktop",
+    "./web"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
