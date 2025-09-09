@@ -18,7 +18,6 @@ import Sounds, { type SoundController } from "./sounds";
 import addPostProcessing from "./effects";
 import * as DropdownMenu from "../../components/Menu/Dropdown";
 import useAudioDevice from "./appHooks/useAudioDevice";
-import compareVersionGT from "../../util/compareVersion";
 import './main.scss'
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { redirect } from "next/navigation";
@@ -161,8 +160,6 @@ function App(): ReactNode {
 
   const [rerenderHook, rerender] = useState(0);
   const [lastSpeakerCount, setLastSpeakerCount] = useState(0);
-
-  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
   const [joined, setJoined] = useState(false);
@@ -319,8 +316,6 @@ function App(): ReactNode {
     (async () => {
       if (window.APP_INIT) return;
       window.APP_INIT = true;
-
-      setAppVersion(await window.app.getAppVersionAsync());
 
       await callObject.setUserData({
         uuid: await window.app.getUserUuidAsync(),

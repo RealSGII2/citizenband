@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Public_Sans } from 'next/font/google';
 import "./global.scss";
+import React from 'react';
 
 const fontSans = Public_Sans({
   variable: "--font-sans",

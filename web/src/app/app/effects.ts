@@ -18,7 +18,7 @@ export default function addPostProcessing(
   const bandpass = context.createBiquadFilter()
   bandpass.type = 'bandpass'
   bandpass.frequency.value = 1500
-  bandpass.Q.value = 1 * postProcessing
+  bandpass.Q.value = postProcessing
 
   const highpass = context.createBiquadFilter()
   highpass.type = 'highpass'
@@ -76,7 +76,7 @@ export default function addPostProcessing(
   return {
     track: final.stream.getAudioTracks()[0],
     adjustPostProcessing(amount: number) {
-      bandpass.Q.value = 1 * amount
+      bandpass.Q.value = amount
       highpass.frequency.value = 300 * amount
       highshelf.gain.value = -17.9 * amount
       lowshelf.gain.value = -17.9 * amount
