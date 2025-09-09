@@ -1,25 +1,3 @@
-body {
-  //display: flex;
-  //align-items: center;
-  //justify-content: center;
-  overflow: hidden;
-  overflow-y: auto;
-  //noinspection CssUnknownTarget
-  background-image: url('/wavy-lines.svg');
-  background-position: center;
-  background-size: cover;
-  user-select: none;
-  font-family: "Public Sans", sans-serif;
-
-  &.vnlSkin {
-    background-image: linear-gradient(to bottom, rgba(27, 27, 32, 0.8), rgba(27, 27, 32, 0.8)), url('https://upload.wikimedia.org/wikipedia/commons/e/ea/Oevlk_-_Volvo_VNL.jpg');
-  }
-
-  [data-radix-popper-content-wrapper] {
-    z-index: 5000 !important;
-  }
-}
-
 .mainLayout {
   width: 100vw;
   min-height: 100vh;

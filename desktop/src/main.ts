@@ -82,5 +82,5 @@ app.whenReady()
     autoUpdater.checkForUpdatesAndNotify({
       title: 'An update is ready', body: 'It will automatically be installed the next time you close the app.',
     });
-    setInterval(autoUpdater.checkForUpdatesAndNotify, 1000 * 60 * 10);
+    setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 1000 * 60 * 10);
   });

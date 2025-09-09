@@ -1,19 +1,33 @@
+.note {
+  color: #82827e;
+  font-size: 14px;
+}
+
 .downloadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   height: 44px;
-  border-radius: 6px;
-
-  color: white;
-
   padding: 0 20px;
+  margin-top: 12px;
 
   border: none;
+  border-radius: 6px;
   background-color: #0969da;
 
+  text-decoration: none;
   font-weight: 500;
+  color: white;
 
   cursor: pointer;
 
-  transition: 85ms opacity;
+  transition: 85ms ease;
+  transition-property: background-color, opacity;
+
+  &:hover {
+    background-color: color-mix(in srgb, #0969da, white 10%);
+  }
 
   &:disabled {
     opacity: 0.5;
