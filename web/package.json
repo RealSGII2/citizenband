@@ -5,7 +5,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "vercel:prebuild": "cp -r ../common ./node_modules/common"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.83.1",
