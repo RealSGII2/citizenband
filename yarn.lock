@@ -3041,7 +3041,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"common@workspace:common":
+"common@workspace:*, common@workspace:common":
   version: 0.0.0-use.local
   resolution: "common@workspace:common"
   dependencies:
@@ -8128,6 +8128,7 @@ __metadata:
     "@types/node": "npm:^20"
     "@types/react": "npm:^19"
     "@types/react-dom": "npm:^19"
+    common: "workspace:*"
     eslint: "npm:^9"
     eslint-config-next: "npm:15.5.2"
     next: "npm:15.5.2"
