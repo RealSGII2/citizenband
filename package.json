@@ -6,7 +6,7 @@
     "common": "yarn workspace common",
     "desktop": "yarn workspace desktop",
     "web": "yarn workspace web",
-    "start": "conc 'yarn web dev' 'yarn desktop start'",
+    "start": "conc --names 'web    ,desktop' 'yarn web dev' 'delay 5 && yarn desktop start'",
     "package": "yarn desktop package",
     "release": "yarn desktop release"
   },
@@ -16,6 +16,7 @@
     "./web"
   ],
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "delay-cli": "^2.0.0"
   }
 }

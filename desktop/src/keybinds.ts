@@ -3,6 +3,7 @@ import { clearInterval } from "node:timers";
 import { GlobalKeyboardListener } from 'node-global-key-listener'
 import HID from 'node-hid'
 import XInput from 'xinput-ffi'
+import type { Keybind } from "common/keybinds";
 
 const keylistener = new GlobalKeyboardListener();
 const keybindState = {
@@ -14,11 +15,14 @@ const keybindState = {
     alt: false,
   },
   keybind: {
-    character: "P",
-    ctrl: false,
-    alt: false,
-    shift: false,
-  },
+    type: 'keyboard',
+    key: {
+      character: "P",
+      ctrl: false,
+      alt: false,
+      shift: false,
+    }
+  } as Keybind,
   xInputInterval: null as NodeJS.Timeout | null,
 };
 
@@ -55,11 +59,11 @@ export default function hookKeybinds(window: BrowserWindow) {
             keybindState.xInputInterval = null;
           }
 
-          if (keyData.character.startsWith("xbox:")) {
+          if (keyData.type == 'gamepad') {
             keybindState.xInputInterval = setInterval(async () => {
               const state = await XInput.getState(0);
               const pressed = (state.gamepad.wButtons as string[]).includes(
-                xboxMap[+keyData.character.substring(5)],
+                keyData.key,
               );
               if (pressed != keybindState.lastState) {
                 keybindState.lastState = pressed;
@@ -69,14 +73,11 @@ export default function hookKeybinds(window: BrowserWindow) {
           }
 
           if (
-            keyData.ctrl &&
-            keyData.alt &&
-            keyData.shift &&
-            keyData.character == "P"
+            keyData.type == 'moza/tsw'
           ) {
             const device = new HID.HID(13422, 4);
             device.on("data", (data: Buffer) => {
-              const pressed = data.readInt8(20) == 1;
+              const pressed = data.readInt8(keyData.booleanBitOffset) == 1;
               if (pressed != keybindState.lastState) {
                 keybindState.lastState = pressed;
                 window.webContents.send("app.keybinds.on.ptt", pressed);
@@ -88,6 +89,8 @@ export default function hookKeybinds(window: BrowserWindow) {
     );
 
     keylistener.addListener((event) => {
+      if (keybindState.keybind.type != "keyboard") return
+
       if (event.name == "LEFT CTRL" || event.name == "RIGHT CTRL")
         keybindState.isDown.ctrl = event.state == "DOWN";
       if (event.name == "LEFT ALT" || event.name == "RIGHT ALT")
@@ -98,10 +101,10 @@ export default function hookKeybinds(window: BrowserWindow) {
       let sameMetaKeys = true;
 
       for (const [key, pressed] of Object.entries(keybindState.isDown))
-        if (!(sameMetaKeys = keybindState.keybind[key as 'ctrl'] == pressed)) break;
+        if (!(sameMetaKeys = keybindState.keybind.key[key as 'ctrl'] == pressed)) break;
 
       if (
-        event.name == keybindState.keybind.character &&
+        event.name == keybindState.keybind.key.character &&
         (event.state == "DOWN") != keybindState.lastState &&
         sameMetaKeys
       ) {

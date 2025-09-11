@@ -1,0 +1,262 @@
+.mainLayout {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.participants {
+  width: 100vw;
+  padding: 10vw;
+  padding-bottom: calc(10vw + 50px);
+
+  //display: grid;
+  //grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+
+  display: flex;
+  flex-wrap: wrap;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 16px;
+
+  > .participant {
+    position: relative;
+
+    padding: 12px;
+
+    aspect-ratio: 4 / 1.5;
+    max-width: 300px;
+    flex: 1 300px;
+    background-color: rgba(12, 12, 12);
+    border-radius: 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    outline: solid 2px transparent;
+    outline-offset: 2px;
+
+    transition: 85ms ease;
+    transition-property: outline, color;
+
+    &.speaking {
+      outline: solid 2px #4d94ff;
+      color: #4d94ff;
+    }
+
+    &:hover .participantOptions, .participantOptions[data-state="open"] {
+      opacity: 1;
+    }
+
+    .participantOptions {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+
+      height: 36px;
+      padding: 0 16px;
+
+      background-color: black;
+      border: none;
+      border-radius: 6px;
+
+      cursor: pointer;
+
+      opacity: 0;
+
+      &:hover {
+        background-color: rgb(24, 24, 24);
+      }
+
+      &:focus-visible {
+        outline: solid 2px #4d94ff;
+      }
+    }
+  }
+}
+
+.heroInputForm {
+  display: flex;
+  gap: 8px;
+
+  h1 + & {
+    font-size: 24px;
+    font-weight: 500;
+    color: white;
+  }
+
+  input, button {
+    height: 36px;
+    border-radius: 6px;
+
+    color: white;
+
+    &:focus {
+      outline: solid 2px #0969da80;
+      outline-offset: 2px;
+    }
+  }
+
+  input {
+    width: 256px;
+    padding: 0 14px;
+
+    background-color: rgb(24, 24, 24);
+    border: solid 1px rgb(100, 100, 100);
+  }
+
+  button {
+    padding: 0 16px;
+
+    border: none;
+    background-color: #0969da;
+
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition: 85ms opacity;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  :has(+ &) {
+    margin-bottom: 12px;
+  }
+}
+
+.broadcastHint, .actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.broadcastHint {
+  text-align: center;
+  font-size: 14px;
+  color: #82827e;
+
+  bottom: 78px;
+  z-index: 100;
+
+  &.editing {
+    animation: fade 1500ms ease-in-out infinite;
+
+    code {
+      outline: solid 1px #ff2942;
+    }
+  }
+
+  button {
+    background-color: transparent;
+    border: none;
+
+    color: #4d94ff;
+
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 16px 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    z-index: -1;
+
+    opacity: 0;
+
+    background-image: linear-gradient(to top, rgb(20, 20, 25), transparent);
+
+    transition: 155ms ease opacity;
+
+    .canScroll & {
+      opacity: 1;
+    }
+  }
+
+  button {
+    padding: 0 20px;
+    height: 44px;
+
+    background-color: rgb(12, 12, 12);
+    border: none;
+    border-radius: 99px;
+
+    font-size: 16px;
+    color: white;
+
+    cursor: pointer;
+
+    &.iconOnly {
+      position: relative;
+      padding: 0;
+      width: 64px;
+
+      svg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    &:hover {
+      background-color: rgb(36, 36, 36);
+    }
+
+    &:focus-visible {
+      outline: solid 2px #4d94ff;
+    }
+
+    &.disconnect {
+      background-color: #ff2942;
+
+      &:hover {
+        background-color: #ff4a5f;
+      }
+    }
+  }
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin-bottom: 80px;
+}
+
+@keyframes fade {
+  from, to {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
