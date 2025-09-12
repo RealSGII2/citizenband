@@ -7,6 +7,19 @@ import hookKeybinds from './keybinds';
 import packageJson from '../package.json';
 import { autoUpdater } from 'electron-updater';
 
+function tryFocus() {
+  const window = BrowserWindow.getAllWindows()[0]
+  if (window.isMinimized()) {
+    window.focus();
+  }
+}
+
+if (app.requestSingleInstanceLock()) {
+  app.on('second-instance', tryFocus);
+} else {
+  process.exit(-1);
+}
+
 function getFirstUUID(): string {
   const interfaces = os.networkInterfaces();
 
@@ -29,7 +42,7 @@ function createWindow() {
   const window = new BrowserWindow({
     width: 800, height: 600, show: false,
 
-    title: 'CitizenBand',
+    title: 'Citizen Band',
 
     webPreferences: {
       preload: join(__dirname, 'preload.js'), autoplayPolicy: 'no-user-gesture-required',
@@ -51,16 +64,6 @@ function createWindow() {
   });
 
   hookKeybinds(window);
-
-  const isLocked = app.requestSingleInstanceLock();
-
-  if (isLocked) {
-    app.on('second-instance', () => {
-      if (window.isMinimized()) {
-        window.focus();
-      }
-    });
-  }
 
   return window;
 }
