@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable */
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { type DailyCall } from "@daily-co/daily-js";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
@@ -62,7 +61,7 @@ function App(): ReactNode {
     [newUsername],
   );
 
-  const [useVnlSkin, setUseVnlSkin] = useState(
+  const [useVnlSkin] = useState(
     localData.get("useVnlSkin") ?? false,
   );
 
@@ -236,7 +235,7 @@ function App(): ReactNode {
               disabled={joinServerId.length == 0 || isJoining}
             >
               {isJoining ? (
-                <div className={styles.loader}>
+                <div className="loader">
                   <div />
                   <div />
                   <div />

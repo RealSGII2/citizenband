@@ -11,6 +11,15 @@ export type ServerData = {
   description: string;
 }
 
+export type FullServerData = ServerData & {
+  discoveryId: string;
+  password: string | null;
+  requiredMods: {
+    name: string;
+    href: string;
+  }[];
+}
+
 export type FilledDailyParticipant = Exclude<DailyParticipant, "userData"> & {
   userData: {
     /**

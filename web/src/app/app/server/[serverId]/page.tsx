@@ -24,6 +24,7 @@ import useParticipants from "./appHooks/useParticipants";
 
 import type { Keybind, KeybindIds } from "common/keybinds";
 import "./main.scss";
+import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
 
 declare global {
   interface Window {
@@ -63,12 +64,13 @@ function App(): ReactNode {
   const { onRerender, rerender } = useRerender();
   const localData = useLocalStorage();
   const userObject = localData.get("user");
+  const [serverObject, setServerObject] = useState<FullServerData | null>(null);
 
   const [selfPlayback, setSelfPlayback] = useState(
     localData.get("selfPlayback") ?? false,
   );
 
-  const [username, setUsername] = useState("");
+  const [panelOpen, setPanelOpen] = useState(false);
   const [joined, setJoined] = useState(false);
 
   const [useVnlSkin, setUseVnlSkin] = useState(
@@ -128,6 +130,10 @@ function App(): ReactNode {
       if (window.APP_INIT) return;
       window.APP_INIT = true;
 
+      const serverReq = await fetch("/api/servers/" + serverId + "?full=true");
+      if (!serverReq.ok) throw new Error("error occured fetching server");
+      setServerObject(await serverReq.json());
+
       await callObject.setUserData({
         uuid: await window.app.getUserUuidAsync(),
         avatarUrl: userObject?.avatar,
@@ -184,237 +190,301 @@ function App(): ReactNode {
       <Sounds ref={sounds} />
 
       {joined && (
-        <>
-          <div className="mainLayout">
-            <div className="participants">
-              {participants.map((participant) => {
-                const wetTrack = participant.stream.wet;
-                const hasAudio =
-                  participant.isSpeaking &&
-                  wetTrack &&
-                  (!participant.isMe || selfPlayback);
+        <div className="splitCallLayout">
+          <div className="primaryPane">
+            <div className="mainLayout">
+              <div className="participants">
+                {participants.map((participant) => {
+                  const wetTrack = participant.stream.wet;
+                  const hasAudio =
+                    participant.isSpeaking &&
+                    wetTrack &&
+                    (!participant.isMe || selfPlayback);
 
-                return (
-                  <div
-                    key={participant.sessionId}
-                    className={`participant ${participant.isSpeaking ? "speaking" : ""}`.trim()}
-                  >
+                  return (
                     <div
-                      style={{ "--src": `url("${participant.avatarUrl}")` }}
-                      className="avatar"
-                    />
-                    <p>{participant.username}</p>
-                    {hasAudio && (
-                      <Audio
-                        srcObject={wetTrack}
-                        controls={false}
-                        autoPlay={true}
+                      key={participant.sessionId}
+                      className={`participant ${participant.isSpeaking ? "speaking" : ""}`.trim()}
+                    >
+                      <div
+                        style={{ "--src": `url("${participant.avatarUrl}")` }}
+                        className="avatar"
                       />
-                    )}
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="participantOptions">
-                        Options
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content align="end">
-                        <DropdownMenu.Label>
-                          {participant.username} {participant.isMe && "(Me)"}
-                        </DropdownMenu.Label>
+                      <p>{participant.username}</p>
+                      {hasAudio && (
+                        <Audio
+                          srcObject={wetTrack}
+                          controls={false}
+                          autoPlay={true}
+                        />
+                      )}
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger className="participantOptions">
+                          Options
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="end">
+                          <DropdownMenu.Label>
+                            {participant.username} {participant.isMe && "(Me)"}
+                          </DropdownMenu.Label>
 
-                        {participant.isMe && (
-                          <>
-                            <DropdownMenu.CheckboxItem
-                              checked={selfPlayback}
-                              onCheckedChange={(newValue: boolean) => {
-                                setSelfPlayback(newValue);
-                                localData.set("selfPlayback", newValue);
-                              }}
-                            >
-                              Self playback
-                            </DropdownMenu.CheckboxItem>
-                          </>
-                        )}
+                          {participant.isMe && (
+                            <>
+                              <DropdownMenu.CheckboxItem
+                                checked={selfPlayback}
+                                onCheckedChange={(newValue: boolean) => {
+                                  setSelfPlayback(newValue);
+                                  localData.set("selfPlayback", newValue);
+                                }}
+                              >
+                                Self playback
+                              </DropdownMenu.CheckboxItem>
+                            </>
+                          )}
 
-                        {(!participant.isMe || selfPlayback) && (
-                          <>
-                            {participant.isMe && (
-                              <DropdownMenu.Label>
-                                Self playback options
-                              </DropdownMenu.Label>
-                            )}
+                          {(!participant.isMe || selfPlayback) && (
+                            <>
+                              {participant.isMe && (
+                                <DropdownMenu.Label>
+                                  Self playback options
+                                </DropdownMenu.Label>
+                              )}
 
-                            <DropdownMenu.SliderItem
-                              min={0}
-                              max={300}
-                              step={5}
-                              value={[participant.settings.volume]}
-                              onValueChange={([newVolume]: [number]) =>
-                                participant.updateVolume(newVolume)
-                              }
-                            >
-                              Volume
-                            </DropdownMenu.SliderItem>
-                            <DropdownMenu.SliderItem
-                              min={0}
-                              max={100}
-                              value={[
-                                participant.settings.postProcessingAmount,
-                              ]}
-                              onValueChange={([newAmount]: [number]) =>
-                                participant.updatePostProcessing(newAmount)
-                              }
-                            >
-                              Radio effect
-                            </DropdownMenu.SliderItem>
-                          </>
-                        )}
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </div>
-                );
-              })}
+                              <DropdownMenu.SliderItem
+                                min={0}
+                                max={300}
+                                step={5}
+                                value={[participant.settings.volume]}
+                                onValueChange={([newVolume]: [number]) =>
+                                  participant.updateVolume(newVolume)
+                                }
+                              >
+                                Volume
+                              </DropdownMenu.SliderItem>
+                              <DropdownMenu.SliderItem
+                                min={0}
+                                max={100}
+                                value={[
+                                  participant.settings.postProcessingAmount,
+                                ]}
+                                onValueChange={([newAmount]: [number]) =>
+                                  participant.updatePostProcessing(newAmount)
+                                }
+                              >
+                                Radio effect
+                              </DropdownMenu.SliderItem>
+                            </>
+                          )}
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Root>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p
+              className={`broadcastHint ${keybind.isChangingKeybind ? "editing" : ""}`.trim()}
+            >
+              {!keybind.isChangingKeybind && (
+                <>
+                  Press and hold <code>{keybind.toString()}</code> to broadcast.{" "}
+                  <button onClick={() => keybind.changeKeybind()}>
+                    Change
+                  </button>
+                </>
+              )}
+              {keybind.isChangingKeybind && (
+                <>
+                  Press a new keybind to replace{" "}
+                  <code>{keybind.toString()}</code>.
+                </>
+              )}
+            </p>
+
+            <div className="actions">
+              <button onClick={() => setPanelOpen((x) => !x)}>
+                {panelOpen ? "Close" : "Open"} <span className='desktopOnly'>details</span>
+              </button>
+
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button>Settings</button>
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Content>
+                  <DropdownMenu.Label>Audio</DropdownMenu.Label>
+
+                  <DropdownMenu.SubRoot>
+                    <DropdownMenu.SubTrigger asChild>
+                      <DropdownMenu.Item>
+                        Defaults <DropdownMenu.SubMenuChevron />
+                      </DropdownMenu.Item>
+                    </DropdownMenu.SubTrigger>
+
+                    <DropdownMenu.SubContent
+                      sideOffset={8}
+                      collisionPadding={16}
+                    >
+                      <DropdownMenu.Label>Defaults</DropdownMenu.Label>
+                      <DropdownMenu.SliderItem
+                        min={0}
+                        max={300}
+                        step={5}
+                        value={[participants.defaults.volume]}
+                        onValueChange={([newVolume]: [number]) =>
+                          participants.defaults.updateVolume(newVolume)
+                        }
+                      >
+                        Default volume
+                      </DropdownMenu.SliderItem>
+                      <DropdownMenu.SliderItem
+                        min={0}
+                        max={100}
+                        value={[participants.defaults.postProcessingAmount]}
+                        onValueChange={([newAmount]: [number]) =>
+                          participants.defaults.updatePostProcessing(newAmount)
+                        }
+                      >
+                        Default radio effect
+                      </DropdownMenu.SliderItem>
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.SubRoot>
+
+                  <DropdownMenu.SubRoot>
+                    <DropdownMenu.SubTrigger asChild>
+                      <DropdownMenu.Item>
+                        Select microphone <DropdownMenu.SubMenuChevron />
+                      </DropdownMenu.Item>
+                    </DropdownMenu.SubTrigger>
+
+                    <DropdownMenu.SubContent
+                      sideOffset={8}
+                      collisionPadding={16}
+                    >
+                      <DropdownMenu.Label>Select microphone</DropdownMenu.Label>
+                      <DropdownMenu.RadioGroup
+                        value={audioDevices.currentDevice?.deviceId}
+                        onValueChange={(newId: string) =>
+                          audioDevices.setCurrentDeviceIdAsync(newId)
+                        }
+                      >
+                        {audioDevices.devices.map((device) => (
+                          <DropdownMenu.RadioItem
+                            value={device.deviceId}
+                            key={device.deviceId}
+                          >
+                            {device.label}
+                          </DropdownMenu.RadioItem>
+                        ))}
+                      </DropdownMenu.RadioGroup>
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.SubRoot>
+
+                  <DropdownMenu.CheckboxItem
+                    checked={selfPlayback}
+                    onCheckedChange={(newValue: boolean) => {
+                      setSelfPlayback(newValue);
+                      localData.set("selfPlayback", newValue);
+                    }}
+                  >
+                    Self playback
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.CheckboxItem
+                    checked={rogerBeepEnabled}
+                    onCheckedChange={(value: boolean) => {
+                      setRogerBeepEnabled(value);
+                      localData.set("rogerBeepEnabled", value);
+                    }}
+                  >
+                    Play roger beep
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.Label>Misc</DropdownMenu.Label>
+
+                  <DropdownMenu.CheckboxItem
+                    checked={useVnlSkin}
+                    onCheckedChange={(value: boolean) => {
+                      setUseVnlSkin(value);
+                      localData.set("useVnlSkin", value);
+                    }}
+                  >
+                    Use VNL background
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.Item onClick={() => window.app.openDevTools()}>
+                    Open console
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+
+              <button
+                className="disconnect"
+                onClick={() => {
+                  window.APP_INIT = false;
+                  window.callObj.leave();
+                  redirect("/app");
+                  // setJoined(false);
+                  // sounds.current!.leave();
+                  // setUsername("");
+                }}
+              >
+                Disconnect
+              </button>
             </div>
           </div>
 
-          <p
-            className={`broadcastHint ${keybind.isChangingKeybind ? "editing" : ""}`.trim()}
-          >
-            {!keybind.isChangingKeybind && (
-              <>
-                Press and hold <code>{keybind.toString()}</code> to broadcast.{" "}
-                <button onClick={() => keybind.changeKeybind()}>Change</button>
-              </>
-            )}
-            {keybind.isChangingKeybind && (
-              <>
-                Press a new keybind to replace <code>{keybind.toString()}</code>
-                .
-              </>
-            )}
-          </p>
+          {panelOpen && (
+            <div className="sidePaneWrapper">
+              <div className="sidePane">
+                {!serverObject && <p>Loading server data...</p>}
+                {serverObject && (
+                  <>
+                    <h1>{serverObject.name}</h1>
+                    <p>{serverObject.description}</p>
 
-          <div className="actions">
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button>Settings</button>
-              </DropdownMenu.Trigger>
+                    <h2>Server ID</h2>
+                    <p style={{ userSelect: "all" }}>
+                      {serverObject.discoveryId}
+                    </p>
 
-              <DropdownMenu.Content>
-                <DropdownMenu.Label>Audio</DropdownMenu.Label>
+                    <h2>Server password</h2>
+                    <p style={{ userSelect: "all" }}>
+                      {serverObject.password ?? "(None)"}
+                    </p>
 
-                <DropdownMenu.SubRoot>
-                  <DropdownMenu.SubTrigger asChild>
-                    <DropdownMenu.Item>
-                      Defaults <DropdownMenu.SubMenuChevron />
-                    </DropdownMenu.Item>
-                  </DropdownMenu.SubTrigger>
+                    <h2>Required mods</h2>
+                    {serverObject.requiredMods.map((x) => (
+                      <a className="mod" rel='noreferrer' target='_blank' href={x.href} key={x.href}>
+                        <h3>{x.name}</h3>
+                        <p className="action">
+                          {x.href}
+                        </p>
+                      </a>
+                    ))}
 
-                  <DropdownMenu.SubContent sideOffset={8} collisionPadding={16}>
-                    <DropdownMenu.Label>Defaults</DropdownMenu.Label>
-                    <DropdownMenu.SliderItem
-                      min={0}
-                      max={300}
-                      step={5}
-                      value={[participants.defaults.volume]}
-                      onValueChange={([newVolume]: [number]) =>
-                        participants.defaults.updateVolume(newVolume)
-                      }
-                    >
-                      Default volume
-                    </DropdownMenu.SliderItem>
-                    <DropdownMenu.SliderItem
-                      min={0}
-                      max={100}
-                      value={[participants.defaults.postProcessingAmount]}
-                      onValueChange={([newAmount]: [number]) =>
-                        participants.defaults.updatePostProcessing(newAmount)
-                      }
-                    >
-                      Default radio effect
-                    </DropdownMenu.SliderItem>
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.SubRoot>
-
-                <DropdownMenu.SubRoot>
-                  <DropdownMenu.SubTrigger asChild>
-                    <DropdownMenu.Item>
-                      Select microphone <DropdownMenu.SubMenuChevron />
-                    </DropdownMenu.Item>
-                  </DropdownMenu.SubTrigger>
-
-                  <DropdownMenu.SubContent sideOffset={8} collisionPadding={16}>
-                    <DropdownMenu.Label>Select microphone</DropdownMenu.Label>
-                    <DropdownMenu.RadioGroup
-                      value={audioDevices.currentDevice?.deviceId}
-                      onValueChange={(newId: string) =>
-                        audioDevices.setCurrentDeviceIdAsync(newId)
-                      }
-                    >
-                      {audioDevices.devices.map((device) => (
-                        <DropdownMenu.RadioItem
-                          value={device.deviceId}
-                          key={device.deviceId}
-                        >
-                          {device.label}
-                        </DropdownMenu.RadioItem>
-                      ))}
-                    </DropdownMenu.RadioGroup>
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.SubRoot>
-
-                <DropdownMenu.CheckboxItem
-                  checked={selfPlayback}
-                  onCheckedChange={(newValue: boolean) => {
-                    setSelfPlayback(newValue);
-                    localData.set("selfPlayback", newValue);
-                  }}
-                >
-                  Self playback
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.CheckboxItem
-                  checked={rogerBeepEnabled}
-                  onCheckedChange={(value: boolean) => {
-                    setRogerBeepEnabled(value);
-                    localData.set("rogerBeepEnabled", value);
-                  }}
-                >
-                  Play roger beep
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.Label>Misc</DropdownMenu.Label>
-
-                <DropdownMenu.CheckboxItem
-                  checked={useVnlSkin}
-                  onCheckedChange={(value: boolean) => {
-                    setUseVnlSkin(value);
-                    localData.set("useVnlSkin", value);
-                  }}
-                >
-                  Use VNL background
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.Item onClick={() => window.app.openDevTools()}>
-                  Open console
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-
-            <button
-              className="disconnect"
-              onClick={() => {
-                window.APP_INIT = false;
-                window.callObj.leave();
-                redirect("/app");
-                // setJoined(false);
-                // sounds.current!.leave();
-                // setUsername("");
-              }}
-            >
-              Disconnect
-            </button>
-          </div>
-        </>
+                    <h2>Mod order</h2>
+                    <p>
+                      Select "Activate session mods" in the server list in-game
+                      to automatically sort your mods.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
+
+      {!joined && <div className="loaderLayout">
+        <div className="page loader">
+          <div />
+          <div />
+          <div />
+        </div>
+
+        <p>Joining the call</p>
+      </div>}
     </TooltipProvider>
   );
 }
