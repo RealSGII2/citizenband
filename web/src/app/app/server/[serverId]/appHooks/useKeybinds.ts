@@ -1,4 +1,4 @@
-import useLocalStorage from "@/app/app/appHooks/useLocalStorage";
+import useLocalStorage from "@/hooks/useLocalStorage";
 import { useEffect, useMemo, useState } from "react";
 import type { Keybind, XboxKey } from "common/keybinds";
 

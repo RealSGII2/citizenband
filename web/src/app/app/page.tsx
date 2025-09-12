@@ -1,29 +1,16 @@
 "use client";
 
 /* eslint-disable */
-import {
-  type AudioHTMLAttributes,
-  type DetailedHTMLProps,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import Daily, { type DailyCall } from "@daily-co/daily-js";
-import * as DropdownMenu from "../../components/Menu/Dropdown";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type DailyCall } from "@daily-co/daily-js";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
-import { redirect } from "next/navigation";
 
-import Sounds, { type SoundController } from "./sounds";
-import useAudioDevice from "./appHooks/useAudioDevice";
-import useKeybinds from "./appHooks/useKeybinds";
-import useLocalStorage from "./appHooks/useLocalStorage";
-import useRerender from "./appHooks/useRerender";
-import useParticipants from "./appHooks/useParticipants";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 import type { Keybind, KeybindIds } from "common/keybinds";
-import "./main.scss";
+import type { UserObject } from "@/app/app/server/[serverId]/appHooks/types";
+import { redirect } from "next/navigation";
+import styles from "./page.module.scss";
 
 declare global {
   interface Window {
@@ -56,404 +43,249 @@ declare global {
 }
 
 function App(): ReactNode {
-  const { onRerender, rerender } = useRerender();
   const localData = useLocalStorage();
+  const recentServers = localData.get("recentServers");
+  const [userObject, setUserObject] = useState(localData.get("user"));
+  const [changingUser, setChangingUser] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [newAvatarURL, setNewAvatarURL] = useState("");
 
-  const [selfPlayback, setSelfPlayback] = useState(
-    localData.get("selfPlayback") ?? false,
+  const [joinServerId, setJoinServerId] = useState("");
+  const [serverJoinError, setServerJoinError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+
+  const newUsernameInvalid = useMemo(
+    () =>
+      newUsername.length < 2 ||
+      newUsername.length > 24 ||
+      /[^a-zA-Z0-9_ ]/.test(newUsername),
+    [newUsername],
   );
-
-  const [username, setUsername] = useState("");
-  const [joined, setJoined] = useState(false);
 
   const [useVnlSkin, setUseVnlSkin] = useState(
     localData.get("useVnlSkin") ?? false,
   );
-
-  const [rogerBeepEnabled, setRogerBeepEnabled] = useState(
-    localData.get("rogerBeepEnabled") ?? true,
-  );
-
-  const sounds = useRef<SoundController | null>(null);
-
-  const callObject = useMemo(() => {
-    if (typeof window == "undefined") return null as unknown as DailyCall;
-    if (window.callObj) return window.callObj;
-
-    const obj = Daily.createCallObject({
-      videoSource: false,
-      audioSource: true,
-    });
-    window.callObj = obj;
-
-    return obj;
-  }, []);
-
-  const participants = useParticipants({
-    callObject,
-    rerender,
-    onRerender,
-    onSpeakerCountUpdate(oldCount, newCount) {
-      if (sounds.current) {
-        if (newCount > oldCount) {
-          sounds.current.doStart();
-        } else if (newCount < oldCount) {
-          sounds.current.doStop(rogerBeepEnabled);
-        }
-
-        sounds.current.setLoop(newCount > 0);
-      }
-    }
-  });
-  const audioDevices = useAudioDevice(callObject);
-  const keybind = useKeybinds()
 
   useEffect(() => {
     if (useVnlSkin) document.body.classList.add("vnlSkin");
     else document.body.classList.remove("vnlSkin");
   }, [useVnlSkin]);
 
-  useEffect(() => {
-    if (typeof window == "undefined" || !window.IS_ELECTRON)
-      return redirect("/");
+  async function joinServer(id: string) {
+    setIsJoining(true);
 
-    navigator.getGamepads();
+    const serverDataReq = await fetch("/api/servers/" + id);
+    if (!serverDataReq.ok) {
+      setIsJoining(false);
+      return setServerJoinError("That server ID is invalid or does not exist.");
+    }
 
-    window.addEventListener("keydown", (event) => {
-      if (
-        (event.ctrlKey && event.shiftKey && event.code == "KeyA") ||
-        event.code == "F12"
-      ) {
-        window.app.openDevTools();
-      }
-    });
+    const newRecentServers = [
+      await serverDataReq.json(),
+      ...(recentServers ?? []).filter((x) => x.slug !== id),
+    ].slice(0, 3);
+    localData.set("recentServers", newRecentServers);
 
-    (async () => {
-      if (window.APP_INIT) return;
-      window.APP_INIT = true;
+    redirect('/app/server/' + id)
+  }
 
-      await callObject.setUserData({
-        uuid: await window.app.getUserUuidAsync(),
-      });
+  if (!userObject || changingUser) {
+    return (
+      <div className={styles.mainLayout}>
+        <div className={styles.splitLayout}>
+          <div>
+            {!changingUser && (
+              <>
+                <h1 className={styles.heroAppTitle}>Citizen Band</h1>
+                <p style={{ marginTop: -12, marginBottom: 12 }}>
+                  Let&apos;s set up your profile.
+                </p>
+              </>
+            )}
 
-      await callObject.updateInputSettings({
-        audio: { processor: { type: "noise-cancellation" } },
-      });
+            {changingUser && (
+              <h1 className={styles.heroAppTitle}>Change Profile</h1>
+            )}
 
-      callObject.on("error", (e) => console.log(e));
-      callObject.on("nonfatal-error", (e) => console.log(e));
-      callObject.on("dialin-error", (e) => console.log(e));
-      callObject.on("dialout-error", (e) => console.log(e));
+            <form
+              className={styles.setupForm}
+              onSubmit={(e) => {
+                e.preventDefault();
 
-      window.app.keybinds.on("ptt", (pressed) => {
-        console.log("localPressed", pressed);
+                if (!newUsernameInvalid) {
+                  const newUser: UserObject = {
+                    username: newUsername,
+                    avatar: newAvatarURL,
+                  };
 
-        callObject.setLocalAudio(pressed);
-        rerender();
-      });
-    })();
+                  setUserObject(newUser);
+                  localData.set("user", newUser);
 
-    const sizeListener = () => {
-      if (
-        document.documentElement.scrollHeight ==
-          document.documentElement.clientHeight ||
-        document.documentElement.scrollTop ==
-          document.documentElement.scrollHeight -
-            document.documentElement.offsetHeight
-      ) {
-        document.body.classList.remove("canScroll");
-      } else document.body.classList.add("canScroll");
-    };
+                  setChangingUser(false);
+                }
+              }}
+            >
+              <div
+                className={`${styles.inputField} ${newUsernameInvalid && newUsername.length > 1 ? styles.invalid : ""}`.trim()}
+              >
+                <label htmlFor="username">Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  value={newUsername}
+                  onInput={(e) =>
+                    setNewUsername((e.target as HTMLInputElement).value)
+                  }
+                />
+                <p className={styles.hint}>
+                  Letters, numbers, underscores, and spaces only. Must be between 2 and 24
+                  characters.
+                </p>
+              </div>
 
-    window.addEventListener("scroll", sizeListener);
-    window.addEventListener("resize", sizeListener);
-  }, []);
+              <div className={styles.inputField}>
+                <label htmlFor="avatarUrl">Avatar URL</label>
+                <input
+                  type="text"
+                  id="avatarUrl"
+                  value={newAvatarURL}
+                  onInput={(e) =>
+                    setNewAvatarURL((e.target as HTMLInputElement).value)
+                  }
+                />
+                <p className={styles.hint}>
+                  Optional. Avoid using Discord image links as they expire after
+                  a day. Using avatars from Steam or another similar application works better.
+                </p>
+              </div>
+
+              <div className={styles.flex}>
+                <button
+                  className={styles.button}
+                  type="submit"
+                  disabled={newUsernameInvalid}
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div>
+            <div style={{ marginTop: changingUser ? 55 : 107 }}>
+              <h2 className={styles.heroSectionTitle}>Profile preview</h2>
+              <p className={styles.mutedText} style={{ marginBottom: 8 }}>
+                This is how other people will see you.
+              </p>
+
+              <div className={styles.participantMock}>
+                <div
+                  style={{ "--src": `url("${newAvatarURL}")` }}
+                  className={styles.avatar}
+                />
+                <p>{newUsername || "Username"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>
-      <Sounds ref={sounds} />
+      <div className={styles.mainLayout}>
+        <div>
+          <h1 className={styles.heroAppTitle}>Citizen Band</h1>
 
-      {joined && (
-        <>
-          <div className="mainLayout">
-            <div className="participants">
-              {participants.map((participant) => {
-                const wetTrack = participant.stream.wet;
-                const hasAudio =
-                  participant.isSpeaking &&
-                  wetTrack &&
-                  (!participant.isMe || selfPlayback);
-
-                return (
-                  <div
-                    key={participant.sessionId}
-                    className={`participant ${participant.isSpeaking ? "speaking" : ""}`.trim()}
+          {recentServers && (
+            <>
+              <h2 className={styles.heroSectionTitle}>Recent servers</h2>
+              <div className={styles.serverList}>
+                {recentServers.map((server) => (
+                  <button
+                    onClick={() => joinServer(server.slug)}
+                    key={server.slug}
                   >
-                    <p>{participant.username}</p>
-                    {hasAudio && (
-                      <Audio
-                        srcObject={wetTrack}
-                        controls={false}
-                        autoPlay={true}
-                      />
-                    )}
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger className="participantOptions">
-                        Options
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content align="end">
-                        <DropdownMenu.Label>
-                          {participant.username} {participant.isMe && "(Me)"}
-                        </DropdownMenu.Label>
+                    <p>{server.name}</p>
+                    <p>{server.description}</p>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-                        {participant.isMe && (
-                          <>
-                            <DropdownMenu.CheckboxItem
-                              checked={selfPlayback}
-                              onCheckedChange={(newValue: boolean) => {
-                                setSelfPlayback(newValue);
-                                localData.set("selfPlayback", newValue);
-                              }}
-                            >
-                              Self playback
-                            </DropdownMenu.CheckboxItem>
-                          </>
-                        )}
-
-                        {(!participant.isMe || selfPlayback) && (
-                          <>
-                            {participant.isMe && (
-                              <DropdownMenu.Label>
-                                Self playback options
-                              </DropdownMenu.Label>
-                            )}
-
-                            <DropdownMenu.SliderItem
-                              min={0}
-                              max={300}
-                              step={5}
-                              value={[participant.settings.volume]}
-                              onValueChange={([newVolume]: [number]) =>
-                                participant.updateVolume(newVolume)
-                              }
-                            >
-                              Volume
-                            </DropdownMenu.SliderItem>
-                            <DropdownMenu.SliderItem
-                              min={0}
-                              max={100}
-                              value={[
-                                participant.settings.postProcessingAmount,
-                              ]}
-                              onValueChange={([newAmount]: [number]) =>
-                                participant.updatePostProcessing(newAmount)
-                              }
-                            >
-                              Radio effect
-                            </DropdownMenu.SliderItem>
-                          </>
-                        )}
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <p
-            className={`broadcastHint ${keybind.isChangingKeybind ? "editing" : ""}`.trim()}
-          >
-            {!keybind.isChangingKeybind && (
-              <>
-                Press and hold <code>{keybind.toString()}</code> to broadcast.{" "}
-                <button onClick={() => keybind.changeKeybind()}>Change</button>
-              </>
-            )}
-            {keybind.isChangingKeybind && (
-              <>
-                Press a new keybind to replace <code>{keybind.toString()}</code>.
-              </>
-            )}
-          </p>
-
-          <div className="actions">
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button>Settings</button>
-              </DropdownMenu.Trigger>
-
-              <DropdownMenu.Content>
-                <DropdownMenu.Label>Audio</DropdownMenu.Label>
-
-                <DropdownMenu.SubRoot>
-                  <DropdownMenu.SubTrigger asChild>
-                    <DropdownMenu.Item>
-                      Defaults <DropdownMenu.SubMenuChevron />
-                    </DropdownMenu.Item>
-                  </DropdownMenu.SubTrigger>
-
-                  <DropdownMenu.SubContent sideOffset={8} collisionPadding={16}>
-                    <DropdownMenu.Label>Defaults</DropdownMenu.Label>
-                    <DropdownMenu.SliderItem
-                      min={0}
-                      max={300}
-                      step={5}
-                      value={[participants.defaults.volume]}
-                      onValueChange={([newVolume]: [number]) =>
-                        participants.defaults.updateVolume(newVolume)
-                      }
-                    >
-                      Default volume
-                    </DropdownMenu.SliderItem>
-                    <DropdownMenu.SliderItem
-                      min={0}
-                      max={100}
-                      value={[participants.defaults.postProcessingAmount]}
-                      onValueChange={([newAmount]: [number]) =>
-                        participants.defaults.updatePostProcessing(newAmount)
-                      }
-                    >
-                      Default radio effect
-                    </DropdownMenu.SliderItem>
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.SubRoot>
-
-                <DropdownMenu.SubRoot>
-                  <DropdownMenu.SubTrigger asChild>
-                    <DropdownMenu.Item>
-                      Select microphone <DropdownMenu.SubMenuChevron />
-                    </DropdownMenu.Item>
-                  </DropdownMenu.SubTrigger>
-
-                  <DropdownMenu.SubContent sideOffset={8} collisionPadding={16}>
-                    <DropdownMenu.Label>Select microphone</DropdownMenu.Label>
-                    <DropdownMenu.RadioGroup
-                      value={audioDevices.currentDevice?.deviceId}
-                      onValueChange={(newId: string) =>
-                        audioDevices.setCurrentDeviceIdAsync(newId)
-                      }
-                    >
-                      {audioDevices.devices.map((device) => (
-                        <DropdownMenu.RadioItem
-                          value={device.deviceId}
-                          key={device.deviceId}
-                        >
-                          {device.label}
-                        </DropdownMenu.RadioItem>
-                      ))}
-                    </DropdownMenu.RadioGroup>
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.SubRoot>
-
-                <DropdownMenu.CheckboxItem
-                  checked={selfPlayback}
-                  onCheckedChange={(newValue: boolean) => {
-                    setSelfPlayback(newValue);
-                    localData.set("selfPlayback", newValue);
-                  }}
-                >
-                  Self playback
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.CheckboxItem
-                  checked={rogerBeepEnabled}
-                  onCheckedChange={(value: boolean) => {
-                    setRogerBeepEnabled(value);
-                    localData.set("rogerBeepEnabled", value);
-                  }}
-                >
-                  Play roger beep
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.Label>Misc</DropdownMenu.Label>
-
-                <DropdownMenu.CheckboxItem
-                  checked={useVnlSkin}
-                  onCheckedChange={(value: boolean) => {
-                    setUseVnlSkin(value);
-                    localData.set("useVnlSkin", value);
-                  }}
-                >
-                  Use VNL background
-                </DropdownMenu.CheckboxItem>
-
-                <DropdownMenu.Item onClick={() => window.app.openDevTools()}>
-                  Open console
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-
-            <button
-              className="disconnect"
-              onClick={() => {
-                window.callObj.leave();
-                setJoined(false);
-                sounds.current!.leave();
-                setUsername("");
-              }}
-            >
-              Disconnect
-            </button>
-          </div>
-        </>
-      )}
-
-      {!joined && (
-        <div className="mainLayout">
-          <h1>Join the Convoy CB Radio</h1>
-
+          <h2 className={styles.heroSectionTitle}>Join a new server</h2>
           <form
-            className="heroInputForm"
+            className={`${styles.heroInputForm} ${serverJoinError ? styles.invalid : ""}`.trim()}
             onSubmit={(e) => {
               e.preventDefault();
-
-              window.callObj.setUserName(username);
-
-              window.callObj.join({
-                url: "https://scs-radio.daily.co/scs-radio",
-                startAudioOff: true,
-              });
-
-              setJoined(true);
-
-              sounds.current!.join();
+              joinServer(joinServerId);
             }}
           >
             <input
               type="text"
-              placeholder="Username"
-              value={username}
-              onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
+              placeholder="Server ID"
+              value={joinServerId}
+              onInput={(e) =>
+                setJoinServerId((e.target as HTMLInputElement).value)
+              }
             />
             <button
-              type={"submit"}
-              disabled={username.length < 2 || username.length > 24}
+              type="submit"
+              disabled={joinServerId.length == 0 || isJoining}
             >
-              Join
+              {isJoining ? (
+                <div className={styles.loader}>
+                  <div />
+                  <div />
+                  <div />
+                </div>
+              ) : (
+                "Join"
+              )}
             </button>
           </form>
+
+          {serverJoinError && (
+            <p className={styles.serverJoinError}>{serverJoinError}</p>
+          )}
+
+          <div className={styles.divider}></div>
+
+          <div className={styles.flex}>
+            <button
+              className={styles.userProfile}
+              onClick={() => {
+                setNewUsername(userObject.username);
+                setNewAvatarURL(userObject.avatar);
+                setChangingUser(true);
+              }}
+            >
+              {/*<div className={styles.avatar}></div>*/}
+              <div
+                style={{ "--src": `url("${userObject.avatar}")` }}
+                className={styles.avatar}
+              />
+              <span>{userObject.username}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                width="16"
+                height="16"
+              >
+                <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
+              </svg>
+            </button>
+
+            <div className={styles.spacer}></div>
+
+            <p className={styles.version}>v1.0.1</p>
+          </div>
         </div>
-      )}
+      </div>
     </TooltipProvider>
   );
-}
-
-function Audio({
-  srcObject,
-  ...props
-}: { srcObject: MediaStream } & DetailedHTMLProps<
-  AudioHTMLAttributes<HTMLAudioElement>,
-  HTMLAudioElement
->) {
-  const ref = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.srcObject = srcObject;
-  }, [ref, srcObject]);
-
-  return <audio ref={ref} {...props} />;
 }
 
 export default App;

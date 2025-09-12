@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import useLocalStorage from "./useLocalStorage";
+import useLocalStorage from "@/hooks/useLocalStorage";
+
 import type {
   FilledDailyParticipant,
   FilledDailyParticipantObject,
   ParticipantSettings,
   ParticipantStreams,
 } from "./types";
-import addPostProcessing from "@/app/app/effects";
+import addPostProcessing from "../effects";
 import type { DailyCall } from "@daily-co/daily-js";
 
 const DEFAULT_SETTINGS: ParticipantSettings = {
@@ -24,6 +25,11 @@ type ParticipantObject = {
    * A public-facing name for this user
    */
   username: string;
+
+  /**
+   * The avatar for this user
+   */
+  avatarUrl: string;
 
   /**
    * A private-facing ID for this user (GUID)
@@ -240,6 +246,7 @@ export default function useParticipants({
             uuid: user.userData.uuid,
             username: user.user_name,
             sessionId: user.user_id,
+            avatarUrl: user.userData.avatarUrl,
 
             isMe: user.local,
 

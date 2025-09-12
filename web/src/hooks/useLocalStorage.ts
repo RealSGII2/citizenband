@@ -1,5 +1,9 @@
-import type { ParticipantSettings } from "@/app/app/appHooks/types";
+import type { ParticipantSettings } from "@/app/app/server/[serverId]/appHooks/types";
 import type { Keybind } from "common/keybinds";
+import type {
+  ServerData,
+  UserObject,
+} from "@/app/app/server/[serverId]/appHooks/types";
 
 type SupportedTypes = string | number | boolean | object;
 
@@ -8,6 +12,10 @@ export type SerializedData<T = SupportedTypes> = {
 };
 
 export type LocalStorageMap = {
+  // Global data
+  user: UserObject;
+  recentServers: ServerData[];
+
   // Audio settings
   selfPlayback: boolean;
   rogerBeepEnabled: boolean;

@@ -1,11 +1,23 @@
 import { DailyParticipant } from "@daily-co/daily-js";
 
+export type UserObject = {
+  username: string;
+  avatar: string;
+}
+
+export type ServerData = {
+  slug: string;
+  name: string;
+  description: string;
+}
+
 export type FilledDailyParticipant = Exclude<DailyParticipant, "userData"> & {
   userData: {
     /**
      * A hash of the user's IP to identify regular users. Temporary until authentication is added.
      */
     uuid: string;
+    avatarUrl: string;
   };
 };
 

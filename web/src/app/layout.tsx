@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Public_Sans } from 'next/font/google';
 import "./global.scss";
 import React from 'react';
+import { GlobalKeybindListener } from "@/app/layoutClient";
 
 const fontSans = Public_Sans({
   variable: "--font-sans",
@@ -21,6 +22,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fontSans.variable}`}>
+        <GlobalKeybindListener />
+
         {children}
       </body>
     </html>
