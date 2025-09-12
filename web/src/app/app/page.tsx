@@ -53,6 +53,8 @@ function App(): ReactNode {
   const [serverJoinError, setServerJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
 
+  const [version, setVersion] = useState('Finalising initialisation...');
+
   const newUsernameInvalid = useMemo(
     () =>
       newUsername.length < 2 ||
@@ -69,6 +71,13 @@ function App(): ReactNode {
     if (useVnlSkin) document.body.classList.add("vnlSkin");
     else document.body.classList.remove("vnlSkin");
   }, [useVnlSkin]);
+
+  // Get version info
+  useEffect(() => {
+    (async () => {
+      setVersion('v' + await window.app.getAppVersionAsync());
+    })();
+  }, []);
 
   async function joinServer(id: string) {
     setIsJoining(true);
@@ -279,7 +288,7 @@ function App(): ReactNode {
 
             <div className={styles.spacer}></div>
 
-            <p className={styles.version}>v1.0.1</p>
+            <p className={styles.version}>{version}</p>
           </div>
         </div>
       </div>
