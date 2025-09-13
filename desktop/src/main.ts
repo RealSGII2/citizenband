@@ -6,6 +6,7 @@ import { join } from 'path';
 import hookKeybinds from './keybinds';
 import packageJson from '../package.json';
 import { autoUpdater } from 'electron-updater';
+import path from "node:path";
 
 function tryFocus() {
   const window = BrowserWindow.getAllWindows()[0]
@@ -43,6 +44,7 @@ function createWindow() {
     width: 800, height: 600, show: false,
 
     title: 'Citizen Band',
+    icon: path.resolve(__dirname, '../resources/icon.ico'),
 
     webPreferences: {
       preload: join(__dirname, 'preload.js'), autoplayPolicy: 'no-user-gesture-required',

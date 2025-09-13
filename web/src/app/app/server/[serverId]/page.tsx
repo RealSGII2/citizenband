@@ -147,14 +147,17 @@ function App(): ReactNode {
 
       callObject.setUserName(userObject?.username ?? "");
 
+      callObject.on("joined-meeting", () =>
+        setTimeout(() => {
+          setJoined(true);
+          sounds.current!.join();
+        }, 100),
+      );
+
       callObject.join({
         url: "https://scs-radio.daily.co/" + serverId,
         startAudioOff: true,
       });
-
-      setJoined(true);
-
-      sounds.current!.join();
 
       callObject.on("error", (e) => console.log(e));
       callObject.on("nonfatal-error", (e) => console.log(e));
