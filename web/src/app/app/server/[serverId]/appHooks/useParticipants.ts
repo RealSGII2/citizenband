@@ -169,7 +169,9 @@ export default function useParticipants({
         callObject.participants() as FilledDailyParticipantObject;
       setParticipants(localParticipants);
 
-      for (const participant of Object.values(localParticipants).filter(x => x.userData && !x.userData.isListener)) {
+      for (const participant of Object.values(localParticipants).filter(
+        (x) => x.userData && !x.userData.isListener,
+      )) {
         const streams = participantStreams[participant.user_id] ?? {
           dry: new MediaStream(),
           wet: new MediaStream(),
@@ -204,10 +206,12 @@ export default function useParticipants({
           streams.adjustVolume(settings.volume / 100);
         }
 
-        participantStreams[participant.user_id] = streams;
+        setParticipantStreams((old) => ({
+          ...old,
+          [participant.user_id]: streams,
+        }));
       }
 
-      setParticipantStreams(participantStreams);
       rerender();
     }
 
@@ -240,61 +244,81 @@ export default function useParticipants({
     setLastSpeakerCount(newSpeakerCount);
   }, [getSpeakers, lastSpeakerCount, onRerender, onSpeakerCountUpdate]);
 
-  const map = useCallback((mapper: (object: ParticipantObject) => ReactNode) => {
-    return Object.values(participants)
-      .filter((x) => !!x.userData && !x.userData.isListener)
-      .map((user) =>
-        mapper({
-          uuid: user.userData.uuid,
-          username: user.user_name,
-          sessionId: user.user_id,
-          avatarUrl: user.userData.avatarUrl,
+  const map = useCallback(
+    (mapper: (object: ParticipantObject) => ReactNode) => {
+      return Object.values(participants)
+        .filter((x) => !!x.userData && !x.userData.isListener)
+        .map((user) =>
+          mapper({
+            uuid: user.userData.uuid,
+            username: user.user_name,
+            sessionId: user.user_id,
+            avatarUrl: user.userData.avatarUrl,
 
-          isMe: user.local,
+            isMe: user.local,
 
-          user,
-          stream: participantStreams[user.user_id],
-          settings:
-            participantSettings[user.userData.uuid] ??
-            defaultParticipantSettings,
+            user,
+            stream: participantStreams[user.user_id],
+            settings:
+              participantSettings[user.userData.uuid] ??
+              defaultParticipantSettings,
 
-          isSpeaking: user.tracks.audio.state === "playable",
+            isSpeaking: user.tracks.audio.state === "playable",
 
-          updateVolume: (volume: number) => {
-            if (volume < 0 || volume > 300)
-              throw new RangeError("`volume` must be within [0, 300]");
+            updateVolume: (volume: number) => {
+              if (volume < 0 || volume > 300)
+                throw new RangeError("`volume` must be within [0, 300]");
 
-            console.log(`Updating "volume" for user "${user.user_name} (${user.user_id})" to "${volume}"`)
+              console.log(
+                `Updating "volume" for user "${user.user_name} (${user.user_id})" to "${volume}"`,
+              );
 
-            participantSettings[user.userData.uuid] ??= defaultParticipantSettings;
-            participantSettings[user.userData.uuid].volume = volume;
+              setParticipantSettings((old) => ({
+                ...old,
+                [user.userData.uuid]: {
+                  ...(old[user.userData.uuid] ?? defaultParticipantSettings),
+                  volume,
+                },
+              }));
+              localData.set("participantSettings", participantSettings);
+              rerender();
+            },
+            updatePostProcessing: (amount: number) => {
+              if (amount < 0 || amount > 300)
+                throw new RangeError("`amount` must be within [0, 100]");
 
-            setParticipantSettings(participantSettings);
-            localData.set("participantSettings", participantSettings);
-            rerender();
-          },
-          updatePostProcessing: (amount: number) => {
-            if (amount < 0 || amount > 300)
-              throw new RangeError("`amount` must be within [0, 100]");
+              console.log(
+                `Updating "postProcessingAmount" for user "${user.user_name} (${user.user_id})" to "${amount}"`,
+              );
 
-            console.log(`Updating "postProcessingAmount" for user "${user.user_name} (${user.user_id})" to "${amount}"`)
-
-            participantSettings[user.userData.uuid] ??=
-              defaultParticipantSettings;
-            participantSettings[user.userData.uuid].postProcessingAmount =
-              amount;
-
-            setParticipantSettings(participantSettings);
-            localData.set("participantSettings", participantSettings);
-            rerender();
-          },
-        }),
-      );
-  }, [defaultParticipantSettings, localData, participantSettings, participantStreams, participants, rerender])
+              setParticipantSettings((old) => ({
+                ...old,
+                [user.userData.uuid]: {
+                  ...(old[user.userData.uuid] ?? defaultParticipantSettings),
+                  postProcessingAmount: amount,
+                },
+              }));
+              localData.set("participantSettings", participantSettings);
+              rerender();
+            },
+          }),
+        );
+    },
+    [
+      defaultParticipantSettings,
+      localData,
+      participantSettings,
+      participantStreams,
+      participants,
+      rerender,
+    ],
+  );
 
   return {
     getSpeakers,
-    listenerCount: Object.values(participants).filter(x => x.userData && x.userData.isListener).length,
+    listenerCount: Object.values(participants).filter(
+      (x) => x.userData && x.userData.isListener,
+    ).length,
     map,
 
     defaults: {
