@@ -22,37 +22,14 @@ import useKeybinds from "./appHooks/useKeybinds";
 import useRerender from "./appHooks/useRerender";
 import useParticipants from "./appHooks/useParticipants";
 
-import type { Keybind, KeybindIds } from "common/keybinds";
 import "./main.scss";
-import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
+import type { FullServerData } from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
+import useOverlay from "@/app/(primaryApp)/app/server/[serverId]/appHooks/useOverlay";
+import type { OverlayPositionId } from "common/desktopApi";
 
 declare global {
   interface Window {
     callObj: DailyCall;
-
-    /** Whether this instance is running in Electron */
-    IS_ELECTRON: boolean;
-
-    /** Whether the main app code has initialised */
-    APP_INIT: boolean;
-
-    /** App API */
-    app: {
-      /* Open the console */
-      openDevTools(): void;
-
-      /** Shortcut API */
-      keybinds: {
-        set(id: KeybindIds, keybind: Keybind): void;
-        on(id: KeybindIds, callback: (pressed: boolean) => void): void;
-      };
-
-      /** Gets the user's network UUID (their hashed IP address) */
-      getUserUuidAsync(): Promise<string>;
-
-      /** The version of the electron backend running */
-      getAppVersionAsync(): Promise<string>;
-    };
   }
 }
 
@@ -114,6 +91,7 @@ function App(): ReactNode {
   });
   const audioDevices = useAudioDevice(callObject);
   const keybind = useKeybinds();
+  const overlay = useOverlay();
 
   useEffect(() => {
     if (useVnlSkin) document.body.classList.add("vnlSkin");
@@ -288,7 +266,8 @@ function App(): ReactNode {
                 <div className="guestCount">
                   <p>
                     {participants.listenerCount} guest
-                    {participants.listenerCount == 1 ? " is" : "s are"} listening
+                    {participants.listenerCount == 1 ? " is" : "s are"}{" "}
+                    listening
                   </p>
                 </div>
               )}
@@ -415,6 +394,64 @@ function App(): ReactNode {
 
                   <DropdownMenu.Label>Misc</DropdownMenu.Label>
 
+                  <DropdownMenu.SubRoot>
+                    <DropdownMenu.SubTrigger asChild>
+                      <DropdownMenu.Item>
+                        Overlay
+                        <DropdownMenu.SubMenuChevron />
+                      </DropdownMenu.Item>
+                    </DropdownMenu.SubTrigger>
+
+                    <DropdownMenu.SubContent collisionPadding={16}>
+                      <DropdownMenu.Label>Overlay</DropdownMenu.Label>
+                      <DropdownMenu.CheckboxItem
+                        checked={overlay.isEnabled}
+                        onCheckedChange={overlay.setEnabled}
+                      >
+                        Enabled
+                      </DropdownMenu.CheckboxItem>
+
+                      <DropdownMenu.Label>Vertical position</DropdownMenu.Label>
+                      <DropdownMenu.RadioGroup
+                        value={overlay.positionId[0]}
+                        onValueChange={(id) =>
+                          overlay.setPosition(
+                            (id + overlay.positionId[1]) as OverlayPositionId,
+                          )
+                        }
+                      >
+                        <DropdownMenu.RadioItem value="t">
+                          Top
+                        </DropdownMenu.RadioItem>
+                        <DropdownMenu.RadioItem value="c">
+                          Centre
+                        </DropdownMenu.RadioItem>
+                        <DropdownMenu.RadioItem value="b">
+                          Bottom
+                        </DropdownMenu.RadioItem>
+                      </DropdownMenu.RadioGroup>
+
+                      <DropdownMenu.Label>
+                        Horizontal position
+                      </DropdownMenu.Label>
+                      <DropdownMenu.RadioGroup
+                        value={overlay.positionId[1]}
+                        onValueChange={(id) =>
+                          overlay.setPosition(
+                            (overlay.positionId[0] + id) as OverlayPositionId,
+                          )
+                        }
+                      >
+                        <DropdownMenu.RadioItem value="r">
+                          Right
+                        </DropdownMenu.RadioItem>
+                        <DropdownMenu.RadioItem value="l">
+                          Left
+                        </DropdownMenu.RadioItem>
+                      </DropdownMenu.RadioGroup>
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.SubRoot>
+
                   <DropdownMenu.CheckboxItem
                     checked={useVnlSkin}
                     onCheckedChange={(value: boolean) => {
@@ -437,9 +474,6 @@ function App(): ReactNode {
                   window.APP_INIT = false;
                   window.callObj.leave();
                   redirect("/app");
-                  // setJoined(false);
-                  // sounds.current!.leave();
-                  // setUsername("");
                 }}
               >
                 Disconnect

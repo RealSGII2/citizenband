@@ -18,6 +18,20 @@ try {
       },
     },
 
+    overlay: {
+      setEnabled(isEnabled: any) {
+        ipcRenderer.send("app.overlay.setEnabled", isEnabled);
+      },
+      updateState(newState: any) {
+        ipcRenderer.send("app.overlay.updateState", newState);
+      },
+      onStateUpdate(callback: (newState: any) => void) {
+        const internalListener = (_: any, newState: any) => callback(newState)
+        ipcRenderer.on("app.overlay.on.updateState", internalListener);
+        return { remove: () => ipcRenderer.off("app.overlay.on.updateState", internalListener) }
+      }
+    },
+
     openDevTools() {
       ipcRenderer.send("app.openDevTools");
     },

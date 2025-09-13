@@ -213,6 +213,24 @@ export default function useParticipants({
       }
 
       rerender();
+
+      if (typeof window !== "undefined" && window.IS_ELECTRON) {
+        console.log("updating overlay state!!");
+
+        window.app.overlay.updateState({
+          users: Object.values(localParticipants)
+            .filter((x) => !!x.userData && !x.userData.isListener)
+            .map((x) => ({
+              uuid: x.userData.uuid,
+              userName: x.user_name,
+              avatarUrl: x.userData.avatarUrl,
+              isSpeaking: x.tracks.audio.state == "playable",
+            })),
+          guestCount: Object.values(localParticipants).filter(
+            (x) => x.userData && x.userData.isListener,
+          ).length,
+        });
+      }
     }
 
     for (const event of [

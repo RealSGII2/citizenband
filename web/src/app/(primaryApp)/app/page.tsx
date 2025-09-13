@@ -5,39 +5,13 @@ import { type DailyCall } from "@daily-co/daily-js";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
 import useLocalStorage from "@/hooks/useLocalStorage";
-
-import type { Keybind, KeybindIds } from "common/keybinds";
-import type { UserObject } from "@/app/app/server/[serverId]/appHooks/types";
+import type { UserObject } from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
 import { redirect } from "next/navigation";
 import styles from "./page.module.scss";
 
 declare global {
   interface Window {
     callObj: DailyCall;
-
-    /** Whether this instance is running in Electron */
-    IS_ELECTRON: boolean;
-
-    /** Whether the main app code has initialised */
-    APP_INIT: boolean;
-
-    /** App API */
-    app: {
-      /* Open the console */
-      openDevTools(): void;
-
-      /** Shortcut API */
-      keybinds: {
-        set(id: KeybindIds, keybind: Keybind): void;
-        on(id: KeybindIds, callback: (pressed: boolean) => void): void;
-      };
-
-      /** Gets the user's network UUID (their hashed IP address) */
-      getUserUuidAsync(): Promise<string>;
-
-      /** The version of the electron backend running */
-      getAppVersionAsync(): Promise<string>;
-    };
   }
 }
 

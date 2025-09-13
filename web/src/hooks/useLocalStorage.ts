@@ -1,9 +1,10 @@
-import type { ParticipantSettings } from "@/app/app/server/[serverId]/appHooks/types";
+import type { ParticipantSettings } from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
 import type { Keybind } from "common/keybinds";
 import type {
   ServerData,
   UserObject,
-} from "@/app/app/server/[serverId]/appHooks/types";
+} from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
+import type { OverlayPositionId } from "common/desktopApi";
 
 type SupportedTypes = string | number | boolean | object;
 
@@ -15,6 +16,11 @@ export type LocalStorageMap = {
   // Global data
   user: UserObject;
   recentServers: ServerData[];
+  overlayOptions: {
+    enabled: boolean;
+    positionId: OverlayPositionId;
+    displayId: number | null;
+  };
 
   // Audio settings
   selfPlayback: boolean;

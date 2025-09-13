@@ -1,0 +1,146 @@
+.root {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+
+  padding: 24px;
+
+  &.top {
+    align-items: flex-start;
+  }
+
+  &.vCenter {
+    align-items: center;
+  }
+
+  &.bottom {
+    align-items: flex-end;
+  }
+
+  &.left {
+    justify-content: flex-start;
+  }
+
+  &.right {
+    justify-content: flex-end;
+  }
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .avatar, span {
+    transition: 135ms ease;
+  }
+
+  .avatar {
+    position: relative;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+    background-color: rgb(37, 37, 37);
+    background-image: var(--src);
+    background-position: center;
+    background-size: cover;
+
+    outline-offset: 2px;
+
+    transition-property: outline-color;
+
+    &, &::before, &::after {
+      outline: solid 2px transparent;
+    }
+
+    &::before, &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+
+      border-radius: 50%;
+    }
+
+    //&::before {
+    //  outline-offset: 4px;
+    //  animation-delay: 100ms !important;
+    //
+    //  opacity: 0.75;
+    //}
+
+    &::after {
+      //outline-offset: 6px;
+      //animation-delay: 200ms !important;
+
+      inset: -4px;
+      opacity: 0.75;
+    }
+  }
+
+  span {
+    padding: 4px 8px;
+
+    background-color: rgba(#121212, 0.8);
+    border-radius: 6px;
+
+    color: rgb(225, 225, 225);
+    font-size: 14px;
+
+    transition-property: background-color, color, font-weight;
+  }
+
+  &.speaking {
+    .avatar {
+      //animation: animateAvatarRingFirst 750ms linear infinite;
+
+      outline-color: #4d94ff;
+
+      &::after {
+        animation: animateAvatarRing 750ms linear infinite;
+      }
+    }
+
+    span {
+      font-weight: 700;
+      background-color: black;
+      color: #4d94ff;
+    }
+  }
+}
+
+@keyframes animateAvatarRingFirst {
+  from, 75%, to {
+    outline-color: rgb(#4d94ff, 0.5);
+  }
+
+  25% {
+    outline-color: #4d94ff
+  }
+}
+
+@keyframes animateAvatarRing {
+  from {
+    box-shadow: 0 0 0 0 #4d94ff;
+  }
+
+  to {
+    box-shadow: 0 0 0 6px #4d94ff00;
+  }
+
+  //from, 75%, to {
+  //  outline-color: transparent;
+  //}
+  //
+  //25% {
+  //  outline-color: #4d94ff
+  //}
+}

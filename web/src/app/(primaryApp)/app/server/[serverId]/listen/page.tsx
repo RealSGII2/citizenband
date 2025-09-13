@@ -19,39 +19,13 @@ import Sounds, { type SoundController } from "../sounds";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import useRerender from "../appHooks/useRerender";
 import useParticipants from "../appHooks/useParticipants";
-
-import type { Keybind, KeybindIds } from "common/keybinds";
 import "../main.scss";
-import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
+import type { FullServerData } from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
 import Link from "next/link";
 
 declare global {
   interface Window {
     callObj: DailyCall;
-
-    /** Whether this instance is running in Electron */
-    IS_ELECTRON: boolean;
-
-    /** Whether the main app code has initialised */
-    APP_INIT: boolean;
-
-    /** App API */
-    app: {
-      /* Open the console */
-      openDevTools(): void;
-
-      /** Shortcut API */
-      keybinds: {
-        set(id: KeybindIds, keybind: Keybind): void;
-        on(id: KeybindIds, callback: (pressed: boolean) => void): void;
-      };
-
-      /** Gets the user's network UUID (their hashed IP address) */
-      getUserUuidAsync(): Promise<string>;
-
-      /** The version of the electron backend running */
-      getAppVersionAsync(): Promise<string>;
-    };
   }
 }
 
@@ -349,7 +323,7 @@ function App(): ReactNode {
                   </DropdownMenu.CheckboxItem>
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
-              <Link href="/">
+              <Link href="/web/public">
                 <button className="primary">Download app</button>
               </Link>
             </div>

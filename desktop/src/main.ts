@@ -1,6 +1,6 @@
 import os from 'node:os';
 import { createHash } from 'node:crypto';
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, shell } from 'electron';
 import { is } from '@electron-toolkit/utils';
 import { join } from 'path';
 import hookKeybinds from './keybinds';
@@ -40,34 +40,91 @@ function getFirstUUID(): string {
 }
 
 function createWindow() {
-  const window = new BrowserWindow({
-    width: 800, height: 600, show: false,
+  ////////////////////////////////////////////////////////////////////////////////
+  //// Main app window
 
-    title: 'Citizen Band',
-    icon: path.resolve(__dirname, '../resources/icon.ico'),
+  const primaryWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    show: false,
+
+    title: "Citizen Band",
+    icon: path.resolve(__dirname, "../resources/icon.ico"),
 
     webPreferences: {
-      preload: join(__dirname, 'preload.js'), autoplayPolicy: 'no-user-gesture-required',
+      preload: join(__dirname, "preload.js"),
+      autoplayPolicy: "no-user-gesture-required",
     },
   });
 
-  window.setMenu(null);
+  primaryWindow.setMenu(null);
 
-  if (is.dev) window.loadURL('http://localhost:3000/app'); else window.loadURL('https://citizenband.app/app');
-  window.on('ready-to-show', () => window.show());
+  if (is.dev) primaryWindow.loadURL("http://localhost:3000/app");
+  else primaryWindow.loadURL("https://citizenband.app/app");
+  primaryWindow.on("ready-to-show", () => primaryWindow.show());
 
-  window.webContents.setWindowOpenHandler((details) => {
+  primaryWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
-    return { action: 'deny' };
+    return { action: "deny" };
   });
 
-  ipcMain.on('app.openDevTools', () => {
-    window.webContents.toggleDevTools();
+  ipcMain.on("app.openDevTools", () => {
+    primaryWindow.webContents.toggleDevTools();
   });
 
-  hookKeybinds(window);
+  hookKeybinds(primaryWindow);
 
-  return window;
+  ////////////////////////////////////////////////////////////////////////////////
+  //// Overlay window
+
+  const overlayWindow = new BrowserWindow({
+    frame: false,
+    resizable: false,
+    // fullscreen: true,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+
+    show: false,
+
+    webPreferences: {
+      preload: join(__dirname, "preload.js"),
+    },
+  });
+
+  function repositionOverlay(displayId?: number) {
+    const displays = screen.getAllDisplays()
+    const display = (displayId && displays[displayId]) ? displays[displayId] : screen.getPrimaryDisplay();
+    overlayWindow.setBounds(display.bounds)
+  }
+
+  repositionOverlay();
+  screen.on('display-removed', () => repositionOverlay())
+  screen.on('display-added', () => repositionOverlay());
+  screen.on('display-metrics-changed', () => repositionOverlay());
+
+  ipcMain.on('app.overlay.setDisplay', (_, id: number) => repositionOverlay(id))
+
+  primaryWindow.on('close', () => overlayWindow.close());
+
+  overlayWindow.setMenu(null);
+  overlayWindow.setIgnoreMouseEvents(true);
+
+  if (is.dev) overlayWindow.loadURL("http://localhost:3000/overlay");
+  else overlayWindow.loadURL("https://citizenband.app/overlay");
+  // overlayWindow.on("ready-to-show", () => overlayWindow.show());
+
+  ipcMain.on('app.overlay.setEnabled', (_, isEnabled: boolean) => {
+    if (isEnabled) overlayWindow.show()
+    else overlayWindow.hide();
+  })
+
+  ipcMain.on('app.overlay.updateState', (_, newState) => {
+    overlayWindow.webContents.send('app.overlay.on.updateState', newState);
+  })
+
+  return { primaryWindow, overlayWindow };
 }
 
 app.setAppUserModelId('CitizenBand');

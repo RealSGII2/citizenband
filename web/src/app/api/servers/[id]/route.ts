@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { notFound } from "next/navigation";
-import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
+import type { FullServerData } from "@/app/(primaryApp)/app/server/[serverId]/appHooks/types";
 
 const testingData: Record<string, FullServerData> = {
   hermelinen: {
