@@ -12,6 +12,7 @@ export type ServerData = {
 }
 
 export type FullServerData = ServerData & {
+  shareIds: string[];
   discoveryId: string;
   password: string | null;
   requiredMods: {
@@ -27,6 +28,7 @@ export type FilledDailyParticipant = Exclude<DailyParticipant, "userData"> & {
      */
     uuid: string;
     avatarUrl: string;
+    isListener: string;
   };
 };
 

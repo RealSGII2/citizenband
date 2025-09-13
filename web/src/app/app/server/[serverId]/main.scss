@@ -23,6 +23,8 @@ $sidebarWidth: max(30vw, 300px);
   align-items: center;
   justify-content: center;
   flex-direction: column;
+
+  padding: calc(10vw - 16px);
 }
 
 .splitCallLayout {
@@ -193,9 +195,22 @@ $sidebarWidth: max(30vw, 300px);
   margin-top: 12px;
 }
 
+.guestCount {
+  //margin-top: -9vw;
+  padding: 8px 16px;
+
+  //background-color: rgb(12, 12, 12);
+  background-color: #1b1b20;
+  border: solid 1px rgb(50, 50, 50);
+  border-radius: 8px;
+
+  font-size: 14px;
+  color: var(--ev-c-text-2);
+}
+
 .participants {
   width: 100vw;
-  padding: 10vw;
+  padding: 16px;
   //padding-bottom: calc(10vw + 50px);
 
   //display: grid;
@@ -405,6 +420,19 @@ $sidebarWidth: max(30vw, 300px);
     color: white;
 
     cursor: pointer;
+
+    &.primary {
+      background-color: #0969da;
+      padding: 0 36px;
+
+      &:hover {
+        background-color: color-mix(in srgb, #0969da, white 10%);
+      }
+
+      .desktopOnly {
+        display: none;
+      }
+    }
 
     &.iconOnly {
       position: relative;

@@ -81,6 +81,11 @@ type ParticipantHook = {
   getSpeakers: () => FilledDailyParticipant[];
 
   /**
+   * The number of guests currently participating
+   */
+  listenerCount: number;
+
+  /**
    * Map all participants, their streams, and their settings
    */
   map: (mapper: (object: ParticipantObject) => ReactNode) => ReactNode[];
@@ -164,7 +169,7 @@ export default function useParticipants({
         callObject.participants() as FilledDailyParticipantObject;
       setParticipants(localParticipants);
 
-      for (const participant of Object.values(localParticipants)) {
+      for (const participant of Object.values(localParticipants).filter(x => !x.userData.isListener)) {
         const streams = participantStreams[participant.user_id] ?? {
           dry: new MediaStream(),
           wet: new MediaStream(),
@@ -235,35 +240,9 @@ export default function useParticipants({
     setLastSpeakerCount(newSpeakerCount);
   }, [getSpeakers, lastSpeakerCount, onRerender, onSpeakerCountUpdate]);
 
-  const updateUserVolume = useCallback((user: FilledDailyParticipant) => (volume: number) => {
-    if (volume < 0 || volume > 300)
-      throw new RangeError("`volume` must be within [0, 300]");
-
-    participantSettings[user.userData.uuid] ??= defaultParticipantSettings;
-    participantSettings[user.userData.uuid].volume = volume;
-
-    setParticipantSettings(participantSettings);
-    localData.set("participantSettings", participantSettings);
-    rerender();
-  }, [defaultParticipantSettings, localData, participantSettings, rerender]);
-
-  const updateUserPostProcessing = useCallback((user: FilledDailyParticipant) => (amount: number) => {
-    if (amount < 0 || amount > 300)
-      throw new RangeError("`amount` must be within [0, 300]");
-
-    participantSettings[user.userData.uuid] ??=
-      defaultParticipantSettings;
-    participantSettings[user.userData.uuid].postProcessingAmount =
-      amount;
-
-    setParticipantSettings(participantSettings);
-    localData.set("participantSettings", participantSettings);
-    rerender();
-  }, [defaultParticipantSettings, localData, participantSettings, rerender]);
-
   const map = useCallback((mapper: (object: ParticipantObject) => ReactNode) => {
     return Object.values(participants)
-      .filter((x) => !!x.userData)
+      .filter((x) => !!x.userData && !x.userData.isListener)
       .map((user) =>
         mapper({
           uuid: user.userData.uuid,
@@ -281,14 +260,41 @@ export default function useParticipants({
 
           isSpeaking: user.tracks.audio.state === "playable",
 
-          updateVolume: updateUserVolume(user),
-          updatePostProcessing: updateUserPostProcessing(user),
+          updateVolume: (volume: number) => {
+            if (volume < 0 || volume > 300)
+              throw new RangeError("`volume` must be within [0, 300]");
+
+            console.log(`Updating "volume" for user "${user.user_name} (${user.user_id})" to "${volume}"`)
+
+            participantSettings[user.userData.uuid] ??= defaultParticipantSettings;
+            participantSettings[user.userData.uuid].volume = volume;
+
+            setParticipantSettings(participantSettings);
+            localData.set("participantSettings", participantSettings);
+            rerender();
+          },
+          updatePostProcessing: (amount: number) => {
+            if (amount < 0 || amount > 300)
+              throw new RangeError("`amount` must be within [0, 100]");
+
+            console.log(`Updating "postProcessingAmount" for user "${user.user_name} (${user.user_id})" to "${amount}"`)
+
+            participantSettings[user.userData.uuid] ??=
+              defaultParticipantSettings;
+            participantSettings[user.userData.uuid].postProcessingAmount =
+              amount;
+
+            setParticipantSettings(participantSettings);
+            localData.set("participantSettings", participantSettings);
+            rerender();
+          },
         }),
       );
-  }, [defaultParticipantSettings, participantSettings, participantStreams, participants, updateUserPostProcessing, updateUserVolume])
+  }, [defaultParticipantSettings, localData, participantSettings, participantStreams, participants, rerender])
 
   return {
     getSpeakers,
+    listenerCount: Object.values(participants).filter(x => x.userData.isListener).length,
     map,
 
     defaults: {

@@ -13,18 +13,17 @@ import {
 import Daily, { type DailyCall } from "@daily-co/daily-js";
 import * as DropdownMenu from "@/components/Menu/Dropdown";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
-import { redirect, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
-import Sounds, { type SoundController } from "./sounds";
+import Sounds, { type SoundController } from "../sounds";
 import useLocalStorage from "@/hooks/useLocalStorage";
-import useAudioDevice from "./appHooks/useAudioDevice";
-import useKeybinds from "./appHooks/useKeybinds";
-import useRerender from "./appHooks/useRerender";
-import useParticipants from "./appHooks/useParticipants";
+import useRerender from "../appHooks/useRerender";
+import useParticipants from "../appHooks/useParticipants";
 
 import type { Keybind, KeybindIds } from "common/keybinds";
-import "./main.scss";
+import "../main.scss";
 import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
+import Link from "next/link";
 
 declare global {
   interface Window {
@@ -63,14 +62,9 @@ function App(): ReactNode {
 
   const { onRerender, rerender } = useRerender();
   const localData = useLocalStorage();
-  const userObject = localData.get("user");
+  // const userObject = localData.get("user");
   const [serverObject, setServerObject] = useState<FullServerData | null>(null);
 
-  const [selfPlayback, setSelfPlayback] = useState(
-    localData.get("selfPlayback") ?? false,
-  );
-
-  const [panelOpen, setPanelOpen] = useState(false);
   const [joined, setJoined] = useState(false);
 
   const [useVnlSkin, setUseVnlSkin] = useState(
@@ -112,8 +106,6 @@ function App(): ReactNode {
       }
     },
   });
-  const audioDevices = useAudioDevice(callObject);
-  const keybind = useKeybinds();
 
   useEffect(() => {
     if (useVnlSkin) document.body.classList.add("vnlSkin");
@@ -121,52 +113,33 @@ function App(): ReactNode {
   }, [useVnlSkin]);
 
   useEffect(() => {
-    if (typeof window == "undefined" || !window.IS_ELECTRON)
-      return redirect("/");
-
-    navigator.getGamepads();
-
     (async () => {
       if (window.APP_INIT) return;
       window.APP_INIT = true;
 
       const serverReq = await fetch("/api/servers/" + serverId + "?full=true");
       if (!serverReq.ok) throw new Error("error occured fetching server");
-      setServerObject(await serverReq.json());
+      // setServerObject(await serverReq.json());
+
+      const { slug } = await serverReq.json()
 
       await callObject.setUserData({
-        uuid: await window.app.getUserUuidAsync(),
-        avatarUrl: userObject?.avatar,
+        isListener: true,
       });
 
-      await callObject
-        .updateInputSettings({
-          audio: { processor: { type: "noise-cancellation" } },
-        })
-        .catch(() => {});
-
-      callObject.setUserName(userObject?.username ?? "");
+      callObject.setUserName(`listener:${Date.now()}`);
 
       callObject.join({
-        url: "https://scs-radio.daily.co/" + serverId,
+        url: "https://scs-radio.daily.co/" + slug,
         startAudioOff: true,
       });
 
       setJoined(true);
 
-      sounds.current!.join();
-
       callObject.on("error", (e) => console.log(e));
       callObject.on("nonfatal-error", (e) => console.log(e));
       callObject.on("dialin-error", (e) => console.log(e));
       callObject.on("dialout-error", (e) => console.log(e));
-
-      window.app.keybinds.on("ptt", (pressed) => {
-        console.log("localPressed", pressed);
-
-        callObject.setLocalAudio(pressed);
-        rerender();
-      });
     })();
 
     const sizeListener = () => {
@@ -183,6 +156,13 @@ function App(): ReactNode {
 
     window.addEventListener("scroll", sizeListener);
     window.addEventListener("resize", sizeListener);
+
+    window.addEventListener("click", () => {
+      for (const audio of document.querySelectorAll(
+        "audio[data-participant-audio]",
+      ))
+        (audio as HTMLAudioElement).play();
+    });
   }, []);
 
   return (
@@ -194,12 +174,19 @@ function App(): ReactNode {
           <div className="primaryPane">
             <div className="mainLayout">
               <div className="participants">
+                {!participants.map((x) => 1).length && (
+                  <p style={{ textAlign: "center" }}>
+                    <b>*Cricket noises*</b>
+                    <br />
+                    There's nobody here.
+                  </p>
+                )}
+
                 {participants.map((participant) => {
                   const wetTrack = participant.stream.wet;
                   const hasAudio =
                     participant.isSpeaking &&
-                    wetTrack &&
-                    (!participant.isMe || selfPlayback);
+                    wetTrack
 
                   return (
                     <div
@@ -213,6 +200,7 @@ function App(): ReactNode {
                       <p>{participant.username}</p>
                       {hasAudio && (
                         <Audio
+                          data-participant-audio="data-participant-audio"
                           srcObject={wetTrack}
                           controls={false}
                           autoPlay={true}
@@ -224,24 +212,10 @@ function App(): ReactNode {
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content align="end">
                           <DropdownMenu.Label>
-                            {participant.username} {participant.isMe && "(Me)"}
+                            {participant.username}
                           </DropdownMenu.Label>
 
-                          {participant.isMe && (
-                            <>
-                              <DropdownMenu.CheckboxItem
-                                checked={selfPlayback}
-                                onCheckedChange={(newValue: boolean) => {
-                                  setSelfPlayback(newValue);
-                                  localData.set("selfPlayback", newValue);
-                                }}
-                              >
-                                Self playback
-                              </DropdownMenu.CheckboxItem>
-                            </>
-                          )}
-
-                          {(!participant.isMe || selfPlayback) && (
+                          {!participant.isMe && (
                             <>
                               {participant.isMe && (
                                 <DropdownMenu.Label>
@@ -280,42 +254,13 @@ function App(): ReactNode {
                   );
                 })}
               </div>
-
-              {participants.listenerCount > 0 && (
-                <div className="guestCount">
-                  <p>
-                    {participants.listenerCount} guest
-                    {participants.listenerCount == 1 ? " is" : "s are"} listening
-                  </p>
-                </div>
-              )}
             </div>
 
-            <p
-              className={`broadcastHint ${keybind.isChangingKeybind ? "editing" : ""}`.trim()}
-            >
-              {!keybind.isChangingKeybind && (
-                <>
-                  Press and hold <code>{keybind.toString()}</code> to broadcast.{" "}
-                  <button onClick={() => keybind.changeKeybind()}>
-                    Change
-                  </button>
-                </>
-              )}
-              {keybind.isChangingKeybind && (
-                <>
-                  Press a new keybind to replace{" "}
-                  <code>{keybind.toString()}</code>.
-                </>
-              )}
+            <p className="broadcastHint">
+              You&apos;re listening to this call. Download the app to speak.
             </p>
 
             <div className="actions">
-              <button onClick={() => setPanelOpen((x) => !x)}>
-                {panelOpen ? "Close" : "Open"}{" "}
-                <span className="desktopOnly">details</span>
-              </button>
-
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button>Settings</button>
@@ -360,46 +305,6 @@ function App(): ReactNode {
                     </DropdownMenu.SubContent>
                   </DropdownMenu.SubRoot>
 
-                  <DropdownMenu.SubRoot>
-                    <DropdownMenu.SubTrigger asChild>
-                      <DropdownMenu.Item>
-                        Select microphone <DropdownMenu.SubMenuChevron />
-                      </DropdownMenu.Item>
-                    </DropdownMenu.SubTrigger>
-
-                    <DropdownMenu.SubContent
-                      sideOffset={8}
-                      collisionPadding={16}
-                    >
-                      <DropdownMenu.Label>Select microphone</DropdownMenu.Label>
-                      <DropdownMenu.RadioGroup
-                        value={audioDevices.currentDevice?.deviceId}
-                        onValueChange={(newId: string) =>
-                          audioDevices.setCurrentDeviceIdAsync(newId)
-                        }
-                      >
-                        {audioDevices.devices.map((device) => (
-                          <DropdownMenu.RadioItem
-                            value={device.deviceId}
-                            key={device.deviceId}
-                          >
-                            {device.label}
-                          </DropdownMenu.RadioItem>
-                        ))}
-                      </DropdownMenu.RadioGroup>
-                    </DropdownMenu.SubContent>
-                  </DropdownMenu.SubRoot>
-
-                  <DropdownMenu.CheckboxItem
-                    checked={selfPlayback}
-                    onCheckedChange={(newValue: boolean) => {
-                      setSelfPlayback(newValue);
-                      localData.set("selfPlayback", newValue);
-                    }}
-                  >
-                    Self playback
-                  </DropdownMenu.CheckboxItem>
-
                   <DropdownMenu.CheckboxItem
                     checked={rogerBeepEnabled}
                     onCheckedChange={(value: boolean) => {
@@ -421,72 +326,13 @@ function App(): ReactNode {
                   >
                     Use VNL background
                   </DropdownMenu.CheckboxItem>
-
-                  <DropdownMenu.Item onClick={() => window.app.openDevTools()}>
-                    Open console
-                  </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
-
-              <button
-                className="disconnect"
-                onClick={() => {
-                  window.APP_INIT = false;
-                  window.callObj.leave();
-                  redirect("/app");
-                  // setJoined(false);
-                  // sounds.current!.leave();
-                  // setUsername("");
-                }}
-              >
-                Disconnect
-              </button>
+              <Link href="/">
+                <button className="primary">Download app</button>
+              </Link>
             </div>
           </div>
-
-          {panelOpen && (
-            <div className="sidePaneWrapper">
-              <div className="sidePane">
-                {!serverObject && <p>Loading server data...</p>}
-                {serverObject && (
-                  <>
-                    <h1>{serverObject.name}</h1>
-                    <p>{serverObject.description}</p>
-
-                    <h2>Server ID</h2>
-                    <p style={{ userSelect: "all" }}>
-                      {serverObject.discoveryId}
-                    </p>
-
-                    <h2>Server password</h2>
-                    <p style={{ userSelect: "all" }}>
-                      {serverObject.password ?? "(None)"}
-                    </p>
-
-                    <h2>Required mods</h2>
-                    {serverObject.requiredMods.map((x) => (
-                      <a
-                        className="mod"
-                        rel="noreferrer"
-                        target="_blank"
-                        href={x.href}
-                        key={x.href}
-                      >
-                        <h3>{x.name}</h3>
-                        <p className="action">{x.href}</p>
-                      </a>
-                    ))}
-
-                    <h2>Mod order</h2>
-                    <p>
-                      Select "Activate session mods" in the server list in-game
-                      to automatically sort your mods.
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

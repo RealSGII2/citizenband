@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 import type { FullServerData } from "@/app/app/server/[serverId]/appHooks/types";
 
-const testingData: Record<string, Omit<FullServerData, 'slug'>> = {
+const testingData: Record<string, FullServerData> = {
   hermelinen: {
+    slug: "hermelinen",
+
     name: "Hermelinen Convoy",
     description: "Quantum science's trucking convoy",
+
+    shareIds: ["972ee5f29defcf1ed7282d72c41c1d761f3eaa3b15088c878bd79ce4cd9b4a5c"],
 
     discoveryId: "85568392935210120",
     password: "jamesisgay",
@@ -29,19 +33,16 @@ export async function GET(
   },
 ) {
   const { id } = await context.params;
-  const server = testingData[id];
+  const server = testingData[id] ?? Object.values(testingData).find(x => x.shareIds.includes(id));
 
   if (!server) return notFound();
 
   if (request.nextUrl.searchParams.get("full") == "true")
-    return NextResponse.json({
-      ...server,
-      slug: id
-    })
+    return NextResponse.json(server)
 
   return NextResponse.json({
     name: server.name,
     description: server.description,
-    slug: id,
+    slug: server.slug,
   });
 }
