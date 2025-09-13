@@ -284,7 +284,7 @@ export default function useParticipants({
               rerender();
             },
             updatePostProcessing: (amount: number) => {
-              if (amount < 0 || amount > 300)
+              if (amount < 0 || amount > 100)
                 throw new RangeError("`amount` must be within [0, 100]");
 
               console.log(

@@ -11,7 +11,7 @@ const fontSans = Public_Sans({
 
 export const metadata: Metadata = {
   title: "Citizen Band",
-  description: "A group voice chat built to simulate the effects if a CB Radio.",
+  description: "A group voice chat built to simulate the effects of a CB Radio.",
   openGraph: {
     siteName: "Citizen Band",
   }
