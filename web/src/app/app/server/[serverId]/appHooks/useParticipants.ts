@@ -169,7 +169,7 @@ export default function useParticipants({
         callObject.participants() as FilledDailyParticipantObject;
       setParticipants(localParticipants);
 
-      for (const participant of Object.values(localParticipants).filter(x => !x.userData.isListener)) {
+      for (const participant of Object.values(localParticipants).filter(x => x.userData && !x.userData.isListener)) {
         const streams = participantStreams[participant.user_id] ?? {
           dry: new MediaStream(),
           wet: new MediaStream(),
@@ -294,7 +294,7 @@ export default function useParticipants({
 
   return {
     getSpeakers,
-    listenerCount: Object.values(participants).filter(x => x.userData.isListener).length,
+    listenerCount: Object.values(participants).filter(x => x.userData && x.userData.isListener).length,
     map,
 
     defaults: {
