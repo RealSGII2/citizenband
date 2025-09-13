@@ -51,7 +51,7 @@ function createWindow() {
 
   window.setMenu(null);
 
-  if (is.dev) window.loadURL('http://localhost:3000/app'); else window.loadURL('https://cb.realsgii2.dev/app');
+  if (is.dev) window.loadURL('http://localhost:3000/app'); else window.loadURL('https://citizenband.app/app');
   window.on('ready-to-show', () => window.show());
 
   window.webContents.setWindowOpenHandler((details) => {
