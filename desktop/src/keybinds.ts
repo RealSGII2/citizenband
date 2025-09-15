@@ -39,9 +39,6 @@ export default function hookKeybinds(window: BrowserWindow) {
       }
     }
 
-    const devices = HID.devices();
-    console.log(devices);
-
     ipcMain.on(
       "app.keybinds.set",
       (_, id: "ptt" | string, keyData: typeof keybindState.keybind) => {
