@@ -10,6 +10,7 @@ const keybindState = {
   hooked: false,
   lastState: false,
   isDown: {
+    character: false,
     ctrl: false,
     shift: false,
     alt: false,
@@ -84,23 +85,23 @@ export default function hookKeybinds(window: BrowserWindow) {
         keybindState.isDown.alt = event.state == "DOWN";
       if (event.name == "LEFT SHIFT" || event.name == "RIGHT SHIFT")
         keybindState.isDown.shift = event.state == "DOWN";
+      if (event.name == keybindState.keybind.key.character)
+        keybindState.isDown.character = event.state == "DOWN";
 
-      let sameMetaKeys = true;
+      let isAllPressed = keybindState.isDown.character;
 
-      for (const [key, pressed] of Object.entries(keybindState.isDown))
-        if (
-          !(sameMetaKeys = keybindState.keybind.key[key as "ctrl"] == pressed)
-        )
-          break;
+      if (isAllPressed)
+        for (const [key, pressed] of Object.entries(keybindState.isDown).filter(x => x[0] != 'character'))
+          if (
+            !(isAllPressed = keybindState.keybind.key[key as "ctrl"] == pressed)
+          )
+            break;
 
       if (
-        event.name == keybindState.keybind.key.character &&
-        (event.state == "DOWN") != keybindState.lastState &&
-        sameMetaKeys
+        isAllPressed != keybindState.lastState
       ) {
-        const pressed = event.state == "DOWN";
-        keybindState.lastState = pressed;
-        window.webContents.send("app.keybinds.on.ptt", pressed);
+        keybindState.lastState = isAllPressed;
+        window.webContents.send("app.keybinds.on.ptt", isAllPressed);
       }
     });
   }
