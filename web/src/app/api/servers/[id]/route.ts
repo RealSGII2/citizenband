@@ -9,21 +9,64 @@ const testingData: Record<string, FullServerData> = {
     name: "Hermelinen Convoy",
     description: "Quantum science's trucking convoy",
 
-    shareIds: ["972ee5f29defcf1ed7282d72c41c1d761f3eaa3b15088c878bd79ce4cd9b4a5c"],
+    shareIds: [
+      "972ee5f29defcf1ed7282d72c41c1d761f3eaa3b15088c878bd79ce4cd9b4a5c",
+    ],
 
-    discoveryId: "85568392935210120",
-    password: "jamesisgay",
-    requiredMods: [
+    sections: [
       {
-        name: "Steam collection",
-        href: "https://steamcommunity.com/sharedfiles/filedetails/?id=3558497537"
+        title: "Server ID",
+        body: {
+          type: "copyable",
+          content: "85568392935210120",
+        },
       },
       {
-        name: "Edison BDE",
-        href: "https://serve.realsgii2.dev/u/edison-bde.scs"
-      }
-    ]
-  }
+        title: "Server Password",
+        body: {
+          type: "copyable",
+          content: "jamesisgay",
+        },
+      },
+      {
+        title: "Required mods",
+        body: {
+          type: "linkList",
+          items: [
+            {
+              name: "Steam collection",
+              href: "https://steamcommunity.com/sharedfiles/filedetails/?id=3558497537",
+            },
+            {
+              name: "Edison BDE",
+              href: "https://serve.realsgii2.dev/u/edison-bde.scs",
+            },
+          ],
+        },
+      },
+      {
+        title: "Mod order",
+        body: {
+          type: "text",
+          content:
+            'Select "Activate session mods" in the server list in-game to automatically sort your mods.',
+        },
+      },
+    ],
+
+    // discoveryId: "85568392935210120",
+    // password: "jamesisgay",
+    // requiredMods: [
+    //   {
+    //     name: "Steam collection",
+    //     href: "https://steamcommunity.com/sharedfiles/filedetails/?id=3558497537",
+    //   },
+    //   {
+    //     name: "Edison BDE",
+    //     href: "https://serve.realsgii2.dev/u/edison-bde.scs",
+    //   },
+    // ],
+  },
 };
 
 export async function GET(
@@ -33,12 +76,14 @@ export async function GET(
   },
 ) {
   const { id } = await context.params;
-  const server = testingData[id] ?? Object.values(testingData).find(x => x.shareIds.includes(id));
+  const server =
+    testingData[id] ??
+    Object.values(testingData).find((x) => x.shareIds.includes(id));
 
   if (!server) return notFound();
 
   if (request.nextUrl.searchParams.get("full") == "true")
-    return NextResponse.json(server)
+    return NextResponse.json(server);
 
   return NextResponse.json({
     name: server.name,

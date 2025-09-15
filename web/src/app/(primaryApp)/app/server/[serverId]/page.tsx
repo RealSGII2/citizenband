@@ -3,7 +3,7 @@
 /* eslint-disable */
 import {
   type AudioHTMLAttributes,
-  type DetailedHTMLProps,
+  type DetailedHTMLProps, Fragment,
   type ReactNode,
   useEffect,
   useMemo,
@@ -490,35 +490,35 @@ function App(): ReactNode {
                     <h1>{serverObject.name}</h1>
                     <p>{serverObject.description}</p>
 
-                    <h2>Server ID</h2>
-                    <p style={{ userSelect: "all" }}>
-                      {serverObject.discoveryId}
-                    </p>
-
-                    <h2>Server password</h2>
-                    <p style={{ userSelect: "all" }}>
-                      {serverObject.password ?? "(None)"}
-                    </p>
-
-                    <h2>Required mods</h2>
-                    {serverObject.requiredMods.map((x) => (
-                      <a
-                        className="mod"
-                        rel="noreferrer"
-                        target="_blank"
-                        href={x.href}
-                        key={x.href}
-                      >
-                        <h3>{x.name}</h3>
-                        <p className="action">{x.href}</p>
-                      </a>
+                    {serverObject.sections.map((section) => (
+                      <Fragment key={section.title}>
+                        <h2>{section.title}</h2>
+                        {section.body.type == "copyable" && (
+                          <p style={{ userSelect: "all" }}>
+                            {section.body.content}
+                          </p>
+                        )}
+                        {section.body.type == "text" && (
+                          <p>{section.body.content}</p>
+                        )}
+                        {section.body.type == "linkList" && (
+                          <p>
+                            {section.body.items.map((x) => (
+                              <a
+                                className="mod"
+                                rel="noreferrer"
+                                target="_blank"
+                                href={x.href}
+                                key={x.href}
+                              >
+                                <h3>{x.name}</h3>
+                                <p className="action">{x.href}</p>
+                              </a>
+                            ))}
+                          </p>
+                        )}
+                      </Fragment>
                     ))}
-
-                    <h2>Mod order</h2>
-                    <p>
-                      Select "Activate session mods" in the server list in-game
-                      to automatically sort your mods.
-                    </p>
                   </>
                 )}
               </div>

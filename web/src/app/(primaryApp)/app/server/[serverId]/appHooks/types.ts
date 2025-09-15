@@ -3,23 +3,43 @@ import { DailyParticipant } from "@daily-co/daily-js";
 export type UserObject = {
   username: string;
   avatar: string;
-}
+};
 
 export type ServerData = {
   slug: string;
   name: string;
   description: string;
-}
+};
 
 export type FullServerData = ServerData & {
   shareIds: string[];
-  discoveryId: string;
-  password: string | null;
-  requiredMods: {
-    name: string;
-    href: string;
+  sections: {
+    title: string;
+    body:
+      | {
+          type: "copyable";
+          content: string;
+        }
+      | {
+          type: "text";
+          content: string;
+        }
+      | {
+          type: "linkList";
+          items: {
+            name: string;
+            href: string;
+          }[];
+        };
   }[];
-}
+  // shareIds: string[];
+  // discoveryId: string;
+  // password: string | null;
+  // requiredMods: {
+  //   name: string;
+  //   href: string;
+  // }[];
+};
 
 export type FilledDailyParticipant = Exclude<DailyParticipant, "userData"> & {
   userData: {
