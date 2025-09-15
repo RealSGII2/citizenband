@@ -53,19 +53,18 @@ const testingData: Record<string, FullServerData> = {
         },
       },
     ],
+  },
+  aeroline: {
+    slug: "aeroline",
 
-    // discoveryId: "85568392935210120",
-    // password: "jamesisgay",
-    // requiredMods: [
-    //   {
-    //     name: "Steam collection",
-    //     href: "https://steamcommunity.com/sharedfiles/filedetails/?id=3558497537",
-    //   },
-    //   {
-    //     name: "Edison BDE",
-    //     href: "https://serve.realsgii2.dev/u/edison-bde.scs",
-    //   },
-    // ],
+    name: "aerochat",
+    description: "aero's random vc instance",
+
+    shareIds: [
+      "e74cd977413928554e592336124f9fba52a946958b33e768c07a13eb541782ff",
+    ],
+
+    sections: []
   },
 };
 
