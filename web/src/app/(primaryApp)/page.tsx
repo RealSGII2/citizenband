@@ -7,10 +7,10 @@ export default function Home() {
         <br />
         <span className={styles.note}><b>Note:</b> This is not a commonly used app. Windows may bug you about it not being recognised; that&apos;s normal.</span>
       </p>
-      <a
-        target='_blank'
-        rel='noreferrer'
-        href='https://github.com/RealSGII2/citizenband/releases/latest/download/CitizenBand-Setup.exe'
+        <a
+          target='_blank'
+          rel='noreferrer'
+          href='https://github.com/RealSGII2/citizenband/releases/latest/download/CitizenBand-Setup.exe'
         className={styles.downloadButton}
       >Download
       </a>
